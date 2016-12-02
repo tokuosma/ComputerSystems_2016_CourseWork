@@ -1,7 +1,7 @@
 
 #include <stdio.h>
 #include <string.h>
-
+#include <stdbool.h>
 /* XDCtools files */
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
@@ -23,6 +23,7 @@
 
 #include "wireless/comm_lib.h"
 #include "sensors/bmp280.h"
+#include "Helpers/magnify.h"
 
 
 /* AASI */
@@ -52,6 +53,24 @@ struct Aasi aasi = {
 	.Image[7] = 0x18
 };
 
+const uint8_t IconMove[8] = {
+		0x00,0xE0,0xE0,0xE0,0xE0,0xFE,0xFF,0xFF
+};
+
+const uint8_t IconSun[8] = {
+		0x89,0x4A,0x3C,0xFC,0x3F,0x3C,0x52,0x91
+};
+const uint8_t IconAir[8] = {
+		0x10,0x38,0x7C,0xFE,0x38,0x10,0x10,0x10
+};
+const uint8_t IconSocial[8] = {
+		0x3C,0x42,0xA5,0x81,0xA5,0x99,0x42,0x3C
+};
+const uint8_t IconArrow[8] = {
+		0x00,0x08,0x0C,0xFE,0xFF,0xFE,0x0C,0x08
+};
+
+
 
 //aasi.Move = 0;
 
@@ -73,6 +92,10 @@ enum DisplayStates {
    MENU_1_2,
    ERROR_0
 };
+
+// Global display state
+enum DisplayStates DisplayState = MAIN_1;
+bool DisplayChanged = true;
 
 /* Pin Button1 configured as power button */
 static PIN_Handle hPowerButton;
@@ -116,12 +139,157 @@ Void powerButtonFxn(PIN_Handle handle, PIN_Id pinId) {
 	Power_shutdown(NULL,0);
 }
 
-Void button0Fxn(PIN_Handle handle, PIN_Id pinId) {
+Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId);
+Void button0_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId);
+Void button0_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId);
+Void button0_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId);
+Void button0_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId);
+Void button0_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId);
+Void powerButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId);
+Void powerButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId);
+Void powerButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId);
+Void powerButton_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId);
+Void powerButton_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId);
 
-    PIN_setOutputValue(hLed, Board_LED0, !PIN_getOutputValue( Board_LED0 ) );
-    if (GetRXFlag() == false) {
-    	Send6LoWPAN(IEEE80154_SINK_ADDR, "Plort!", 6);
-    	StartReceive6LoWPAN();
+
+/*Main view with donkey*/
+Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId) {
+
+    DisplayState = MENU_0_0;
+    DisplayChanged = true;
+
+    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_0_0_FXN) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+
+    if (PIN_registerIntCb(hButton0, &button0_MENU_0_0_FXN) != 0) {
+        			System_abort("Error registering button callback function");
+    }
+
+}
+Void button0_MAIN_1_FXN(PIN_Handle handle, PIN_Id pinId) {
+
+    DisplayState = MENU_1_0;
+    DisplayChanged = true;
+
+    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_1_0_FXN) != 0) {
+        			System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MENU_1_0_FXN) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+
+}
+
+Void button0_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MENU_0_1;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_0_1_FXN) != 0) {
+        			System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MENU_0_1_FXN) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+
+}
+
+Void button0_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MENU_0_0;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_0_0_FXN) != 0) {
+            			System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MENU_0_0_FXN) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+
+}
+
+Void button0_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MENU_1_1;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_1_1_FXN) != 0) {
+            			System_abort("Error registering button callback function");
+        }
+    if (PIN_registerIntCb(hButton0, &button0_MENU_1_1_FXN) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+}
+
+Void button0_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MENU_1_2;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_1_2_FXN) != 0) {
+            			System_abort("Error registering button callback function");
+        }
+    if (PIN_registerIntCb(hButton0, &button0_MENU_1_2_FXN) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+}
+
+Void button0_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MENU_1_0;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_1_0_FXN) != 0) {
+            			System_abort("Error registering button callback function");
+        }
+    if (PIN_registerIntCb(hButton0, &button0_MENU_1_0_FXN) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+}
+
+Void powerButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MAIN_1;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
+                			System_abort("Error registering button callback function");
+    }
+}
+
+Void powerButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MAIN_1;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
+                			System_abort("Error registering button callback function");
+    }
+}
+
+Void powerButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MAIN_1;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
+                			System_abort("Error registering button callback function");
+    }
+}
+
+Void powerButton_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MAIN_1;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
+                			System_abort("Error registering button callback function");
+    }
+}
+
+Void powerButton_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MAIN_1;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
+            			System_abort("Error registering button callback function");
     }
 }
 
@@ -160,7 +328,7 @@ Void taskFxn(UArg arg0, UArg arg1) {
 
     I2C_Handle      i2c;
     I2C_Params      i2cParams;
-    
+
 	// Initialize display variables
     const uint32_t imgPalette[] = {0, 0xFFFFFF};
 	const tImage aasiImage = {
@@ -171,7 +339,51 @@ Void taskFxn(UArg arg0, UArg arg1) {
 		.pPalette = imgPalette,
 		.pPixel = aasi.Image
 	};
-	enum DisplayStates displayState = MAIN_0;
+
+	const tImage moveImage = {
+			.BPP = IMAGE_FMT_1BPP_UNCOMP,
+			.NumColors = 2,
+			.XSize = 1,
+			.YSize = 8,
+			.pPalette = imgPalette,
+			.pPixel = IconMove
+	};
+
+	const tImage sunImage = {
+			.BPP = IMAGE_FMT_1BPP_UNCOMP,
+			.NumColors = 2,
+			.XSize = 1,
+			.YSize = 8,
+			.pPalette = imgPalette,
+			.pPixel = IconSun
+	};
+
+	const tImage airImage = {
+			.BPP = IMAGE_FMT_1BPP_UNCOMP,
+			.NumColors = 2,
+			.XSize = 1,
+			.YSize = 8,
+			.pPalette = imgPalette,
+			.pPixel = IconAir
+	};
+
+	const tImage socialImage = {
+			.BPP = IMAGE_FMT_1BPP_UNCOMP,
+			.NumColors = 2,
+			.XSize = 1,
+			.YSize = 8,
+			.pPalette = imgPalette,
+			.pPixel = IconSocial
+	};
+
+	const tImage arrowImage = {
+			.BPP = IMAGE_FMT_1BPP_UNCOMP,
+			.NumColors = 2,
+			.XSize = 1,
+			.YSize = 8,
+			.pPalette = imgPalette,
+			.pPixel = IconArrow
+	};
 
     /* Create I2C for usage */
     I2C_Params_init(&i2cParams);
@@ -202,19 +414,81 @@ Void taskFxn(UArg arg0, UArg arg1) {
     }
 
     while (1) {
+    	if(DisplayChanged == true){
+			Display_clear(hDisplay);
 
-    	if(displayState == MAIN_1){
+			if(DisplayState == MAIN_1){
 
-    		GrLineDraw(pContext,0,10,96,10);
-    		GrImageDraw(pContext, &aasiImage, 30, 30);
-    		GrFlush(pContext);
-    		Display_print0(hDisplay, 10, 4, aasi.Name);
-    	}
-    	if(displayState == MAIN_0){
-    		Display_print0(hDisplay, 10, 4, "Ei aasia :(");
-    	}
-    	else{
-    		Display_print0(hDisplay, 3, 3, "MOI");
+				Display_print0(hDisplay, 10, 4, aasi.Name);
+				// TODO: Tulosta aasin statsit sprinf:n kautta muuttujiin ja korvaa tähän
+				Display_print0(hDisplay, 1, 3, "1000    1000");
+				Display_print0(hDisplay, 2, 3, "1000    1000");
+
+				GrImageDraw(pContext, &aasiImage, 40, 40);
+				GrImageDraw(pContext, &moveImage, 10, 7);
+				GrImageDraw(pContext, &sunImage, 55, 7);
+				GrImageDraw(pContext, &airImage, 10, 15);
+				GrImageDraw(pContext, &socialImage, 55, 15);
+				GrLineDraw(pContext,0,24,96,24);
+				GrFlush(pContext);
+			}
+			else if(DisplayState == MAIN_0){
+				Display_print0(hDisplay, 10, 4, "Ei aasia :(");
+			}
+			else if(DisplayState == MENU_0_0){
+				Display_print0(hDisplay, 1, 6, "MENU");
+				Display_print0(hDisplay, 4, 4, "LEIKI");
+				Display_print0(hDisplay, 5, 4, "TAKAISIN");
+
+				GrImageDraw(pContext, &arrowImage, 14, 30);
+				GrFlush(pContext);
+			}
+			else if(DisplayState == MENU_0_1){
+				Display_print0(hDisplay, 1, 6, "MENU");
+
+				Display_print0(hDisplay, 4, 4, "LEIKI");
+				Display_print0(hDisplay, 5, 4, "TAKAISIN");
+				GrImageDraw(pContext, &arrowImage, 14, 38);
+				GrFlush(pContext);
+
+			}
+			else if(DisplayState == MENU_1_0){
+				Display_print0(hDisplay, 1, 6, "MENU");
+				Display_print0(hDisplay, 4, 4, "NUKU");
+				Display_print0(hDisplay, 5, 4, "MOIKKAA");
+				Display_print0(hDisplay, 6, 4, "TAKAISIN");
+
+				GrImageDraw(pContext, &arrowImage, 14, 30);
+				GrFlush(pContext);
+
+			}
+			else if(DisplayState == MENU_1_1){
+				Display_print0(hDisplay, 1, 6, "MENU");
+				Display_print0(hDisplay, 4, 4, "NUKU");
+				Display_print0(hDisplay, 5, 4, "MOIKKAA");
+				Display_print0(hDisplay, 6, 4, "TAKAISIN");
+
+				GrImageDraw(pContext, &arrowImage, 14, 38);
+				GrFlush(pContext);
+
+			}
+			else if(DisplayState == MENU_1_2){
+				Display_print0(hDisplay, 1, 6, "MENU");
+				Display_print0(hDisplay, 4, 4, "NUKU");
+				Display_print0(hDisplay, 5, 4, "MOIKKAA");
+				Display_print0(hDisplay, 6, 4, "TAKAISIN");
+
+				GrImageDraw(pContext, &arrowImage, 14, 46);
+				GrFlush(pContext);
+
+			}
+			else if(DisplayState == ERROR_0){
+
+			}
+			else{
+				Display_print0(hDisplay, 3, 3, "MOI");
+			}
+			DisplayChanged = false;
     	}
 
     	/*
@@ -275,7 +549,7 @@ Int main(void) {
 		if(!hButton0) {
 			System_abort("Error initializing button 0 pins\n");
 		}
-		if (PIN_registerIntCb(hButton0, &button0Fxn) != 0) {
+		if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
 			System_abort("Error registering button callback function");
 		}
 
