@@ -326,18 +326,21 @@ Void commFxn(UArg arg0, UArg arg1) {
 
 Void taskFxn(UArg arg0, UArg arg1) {
 
-    I2C_Handle      i2c;
-    I2C_Params      i2cParams;
+//    I2C_Handle      i2c;
+//    I2C_Params      i2cParams;
 
 	// Initialize display variables
+
+	uint8_t aasiImageMag[128] = {0};
+	magnify(aasi.Image, aasiImageMag);
     const uint32_t imgPalette[] = {0, 0xFFFFFF};
 	const tImage aasiImage = {
 		.BPP = IMAGE_FMT_1BPP_UNCOMP,
 		.NumColors = 2,
-		.XSize = 1,
-		.YSize = 8,
+		.XSize = 31,
+		.YSize = 32,
 		.pPalette = imgPalette,
-		.pPixel = aasi.Image
+		.pPixel = aasiImageMag
 	};
 
 	const tImage moveImage = {
@@ -386,18 +389,18 @@ Void taskFxn(UArg arg0, UArg arg1) {
 	};
 
     /* Create I2C for usage */
-    I2C_Params_init(&i2cParams);
-    i2cParams.bitRate = I2C_400kHz;
-    i2c = I2C_open(Board_I2C0, &i2cParams);
-    if (i2c == NULL) {
-        System_abort("Error Initializing I2C\n");
-    }
-    else {
-        System_printf("I2C Initialized!\n");
-    }
-
-    // SETUP SENSORS HERE
-    bmp280_setup(&i2c);
+//    I2C_Params_init(&i2cParams);
+//    i2cParams.bitRate = I2C_400kHz;
+//    i2c = I2C_open(Board_I2C0, &i2cParams);
+//    if (i2c == NULL) {
+//        System_abort("Error Initializing I2C\n");
+//    }
+//    else {
+//        System_printf("I2C Initialized!\n");
+//    }
+//
+//    // SETUP SENSORS HERE
+//    bmp280_setup(&i2c);
 
     /* Display */
     Display_Params displayParams;
@@ -419,12 +422,12 @@ Void taskFxn(UArg arg0, UArg arg1) {
 
 			if(DisplayState == MAIN_1){
 
-				Display_print0(hDisplay, 10, 4, aasi.Name);
+				Display_print0(hDisplay, 10, 5, aasi.Name);
 				// TODO: Tulosta aasin statsit sprinf:n kautta muuttujiin ja korvaa tähän
 				Display_print0(hDisplay, 1, 3, "1000    1000");
 				Display_print0(hDisplay, 2, 3, "1000    1000");
 
-				GrImageDraw(pContext, &aasiImage, 40, 40);
+				GrImageDraw(pContext, &aasiImage, 32, 40);
 				GrImageDraw(pContext, &moveImage, 10, 7);
 				GrImageDraw(pContext, &sunImage, 55, 7);
 				GrImageDraw(pContext, &airImage, 10, 15);
