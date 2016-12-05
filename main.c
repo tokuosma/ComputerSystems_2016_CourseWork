@@ -34,6 +34,7 @@ struct Aasi {
     uint32_t Sun;
     uint32_t Air;
     uint32_t Social;
+    bool Active;
 };
 
 
@@ -50,13 +51,14 @@ struct Aasi aasi = {
 	.Image[4] = 0x81,
 	.Image[5] = 0x5A,
 	.Image[6] = 0x24,
-	.Image[7] = 0x18
+	.Image[7] = 0x18,
+	.Active = true
 };
 
+// ICONS
 const uint8_t IconMove[8] = {
 		0x00,0xE0,0xE0,0xE0,0xE0,0xFE,0xFF,0xFF
 };
-
 const uint8_t IconSun[8] = {
 		0x89,0x4A,0x3C,0xFC,0x3F,0x3C,0x52,0x91
 };
@@ -70,9 +72,11 @@ const uint8_t IconArrow[8] = {
 		0x00,0x08,0x0C,0xFE,0xFF,0xFE,0x0C,0x08
 };
 
-
-
-//aasi.Move = 0;
+// GLOBAL SENSOR LIMITS
+const double MOVE_LIMIT = 0;
+const double TMP_LIMIT = 0;
+const double LIGHT_LIMIT = 0;
+const double PRES_LIMIT = 0;
 
 /* Task */
 #define STACKSIZE 4906
