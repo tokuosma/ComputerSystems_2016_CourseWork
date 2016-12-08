@@ -32,10 +32,10 @@
 
 struct Aasi aasi = {
 	.Name = "Duffy",
-	.Move = 0,
-	.Sun = 0,
-	.Air = 0,
-	.Social = 0,
+	.Move = 4000,
+	.Sun = 3000,
+	.Air = 1230,
+	.Social = 1500,
 	.Image[0] = 0x81,
 	.Image[1] = 0x42,
 	.Image[2] = 0x7E,
@@ -489,22 +489,27 @@ Void taskFxn(UArg arg0, UArg arg1) {
     	System_abort("Error initializing graphics library\n");
     }
 
+    char stats_line_1[16];
+    char stats_line_2[16];
     while (1) {
     	if(DisplayChanged == true){
 			Display_clear(hDisplay);
 
 			if(DisplayState == MAIN_1){
 
+				sprintf(stats_line_1, "   %4d   %4d", aasi.Move, aasi.Sun);
+				sprintf(stats_line_2, "   %4d   %4d", aasi.Air, aasi.Social);
 				Display_print0(hDisplay, 10, 5, aasi.Name);
 				// TODO: Tulosta aasin statsit sprinf:n kautta muuttujiin ja korvaa tähän
-				Display_print0(hDisplay, 1, 3, "1000    1000");
-				Display_print0(hDisplay, 2, 3, "1000    1000");
+
+				Display_print0(hDisplay, 1, 0, stats_line_1);
+				Display_print0(hDisplay, 2, 0, stats_line_2);
 
 				GrImageDraw(pContext, &aasiImage, 32, 40);
-				GrImageDraw(pContext, &moveImage, 10, 7);
-				GrImageDraw(pContext, &sunImage, 55, 7);
-				GrImageDraw(pContext, &airImage, 10, 15);
-				GrImageDraw(pContext, &socialImage, 55, 15);
+				GrImageDraw(pContext, &moveImage, 12, 7);
+				GrImageDraw(pContext, &sunImage, 54, 7);
+				GrImageDraw(pContext, &airImage, 12, 15);
+				GrImageDraw(pContext, &socialImage, 54, 15);
 				GrLineDraw(pContext,0,24,96,24);
 				GrFlush(pContext);
 			}
