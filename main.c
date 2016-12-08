@@ -24,19 +24,10 @@
 #include "wireless/comm_lib.h"
 #include "sensors/bmp280.h"
 #include "Helpers/magnify.h"
+#include "Aasi.h"
 
 
 /* AASI */
-struct Aasi {
-    char Name[16] ;
-    uint8_t Image[8];
-    uint32_t Move;
-    uint32_t Sun;
-    uint32_t Air;
-    uint32_t Social;
-    bool Active;
-};
-
 
 struct Aasi aasi = {
 	.Name = "Duffy",
@@ -91,6 +82,7 @@ enum DisplayStates {
    MAIN_1,
    MENU_0_0,
    MENU_0_1,
+   MENU_0_2,
    MENU_1_0,
    MENU_1_1,
    MENU_1_2,
@@ -146,17 +138,19 @@ Void powerButtonFxn(PIN_Handle handle, PIN_Id pinId) {
 Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId);
 Void button0_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId);
 Void button0_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId);
+Void button0_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId);
 Void button0_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId);
 Void button0_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId);
 Void button0_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId);
 Void powerButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId);
 Void powerButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId);
+Void powerButton_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId);
 Void powerButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId);
 Void powerButton_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId);
 Void powerButton_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId);
 
 
-/*Main view with donkey*/
+/*Main view without donkey*/
 Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 
     DisplayState = MENU_0_0;
@@ -171,6 +165,8 @@ Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId) {
     }
 
 }
+
+/*Main view with donkey*/
 Void button0_MAIN_1_FXN(PIN_Handle handle, PIN_Id pinId) {
 
     DisplayState = MENU_1_0;
@@ -185,6 +181,7 @@ Void button0_MAIN_1_FXN(PIN_Handle handle, PIN_Id pinId) {
 
 }
 
+/*Menu without donkey, first option (UUSI) selected*/
 Void button0_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_0_1;
     DisplayChanged = true;
@@ -197,8 +194,21 @@ Void button0_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 
 }
 
+/*Menu without donkey, second option (LEIKI) selected*/
 Void button0_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_0_0;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_0_2_FXN) != 0) {
+            			System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MENU_0_2_FXN) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+
+}
+/*Menu without donkey, third option (TAKAISIN) selected*/
+Void button0_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MENU_0_2;
     DisplayChanged = true;
     if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_0_0_FXN) != 0) {
             			System_abort("Error registering button callback function");
@@ -243,23 +253,34 @@ Void button0_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {
 }
 
 Void powerButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MAIN_1;
+    DisplayState = MAIN_0;
     DisplayChanged = true;
     if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
     			System_abort("Error registering button callback function");
     }
-    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
                 			System_abort("Error registering button callback function");
     }
 }
 
 Void powerButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MAIN_1;
+    DisplayState = MAIN_0;
     DisplayChanged = true;
     if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
     			System_abort("Error registering button callback function");
     }
-    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
+                			System_abort("Error registering button callback function");
+    }
+}
+
+Void powerButton_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {
+    DisplayState = MAIN_0;
+    DisplayChanged = true;
+    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+    			System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
                 			System_abort("Error registering button callback function");
     }
 }
