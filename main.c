@@ -24,6 +24,7 @@
 #include "wireless/comm_lib.h"
 #include "sensors/bmp280.h"
 #include "Helpers/magnify.h"
+#include "Helpers/messages.h"
 #include "Aasi.h"
 
 
@@ -86,6 +87,7 @@ enum DisplayStates {
    MENU_1_0,
    MENU_1_1,
    MENU_1_2,
+   SEND_NEW,
    ERROR_0
 };
 
@@ -123,7 +125,7 @@ PIN_Config cLed[] = {
 };
 
 /* Handle power button */
-Void powerButtonFxn(PIN_Handle handle, PIN_Id pinId) {
+Void actionButtonFxn(PIN_Handle handle, PIN_Id pinId) {
 
     Display_clear(hDisplay);
     Display_close(hDisplay);
@@ -142,12 +144,12 @@ Void button0_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId);
 Void button0_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId);
 Void button0_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId);
 Void button0_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId);
-Void powerButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId);
-Void powerButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId);
-Void powerButton_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId);
-Void powerButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId);
-Void powerButton_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId);
-Void powerButton_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId);
+Void actionButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId);
+Void actionButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId);
+Void actionButton_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId);
+Void actionButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId);
+Void actionButton_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId);
+Void actionButton_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId);
 
 
 /*Main view without donkey*/
@@ -156,7 +158,7 @@ Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_0_0;
     DisplayChanged = true;
 
-    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_0_0_FXN) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButton_MENU_0_0_FXN) != 0) {
     			System_abort("Error registering button callback function");
     }
 
@@ -167,12 +169,13 @@ Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 }
 
 /*Main view with donkey*/
+/*OPEN MENU*/
 Void button0_MAIN_1_FXN(PIN_Handle handle, PIN_Id pinId) {
 
     DisplayState = MENU_1_0;
     DisplayChanged = true;
 
-    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_1_0_FXN) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButton_MENU_1_0_FXN) != 0) {
         			System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MENU_1_0_FXN) != 0) {
@@ -182,10 +185,11 @@ Void button0_MAIN_1_FXN(PIN_Handle handle, PIN_Id pinId) {
 }
 
 /*Menu without donkey, first option (UUSI) selected*/
+/*MOVE TO SECOND MENU OPTION*/
 Void button0_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_0_1;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_0_1_FXN) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButton_MENU_0_1_FXN) != 0) {
         			System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MENU_0_1_FXN) != 0) {
@@ -195,10 +199,11 @@ Void button0_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 }
 
 /*Menu without donkey, second option (LEIKI) selected*/
+/*MOVE TO THIRD MENU OPTION*/
 Void button0_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_0_0;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_0_2_FXN) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButton_MENU_0_2_FXN) != 0) {
             			System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MENU_0_2_FXN) != 0) {
@@ -207,10 +212,11 @@ Void button0_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
 
 }
 /*Menu without donkey, third option (TAKAISIN) selected*/
+/*MOVE TO FIRST MENU OPTION*/
 Void button0_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_0_2;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_0_0_FXN) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButton_MENU_0_0_FXN) != 0) {
             			System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MENU_0_0_FXN) != 0) {
@@ -219,10 +225,12 @@ Void button0_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {
 
 }
 
+/*Menu with donkey, first option (NUKU) selected*/
+/*MOVE TO SECOND MENU OPTION*/
 Void button0_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_1_1;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_1_1_FXN) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButton_MENU_1_1_FXN) != 0) {
             			System_abort("Error registering button callback function");
         }
     if (PIN_registerIntCb(hButton0, &button0_MENU_1_1_FXN) != 0) {
@@ -230,10 +238,12 @@ Void button0_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
     }
 }
 
+/*Menu with donkey, second option (MOIKKAA) selected*/
+/*MOVE TO THIRD MENU OPTION*/
 Void button0_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_1_2;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_1_2_FXN) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButton_MENU_1_2_FXN) != 0) {
             			System_abort("Error registering button callback function");
         }
     if (PIN_registerIntCb(hButton0, &button0_MENU_1_2_FXN) != 0) {
@@ -241,10 +251,12 @@ Void button0_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId) {
     }
 }
 
+/*Menu with donkey, third option (TAKAISIN) selected*/
+/*MOVE TO FIRST MENU OPTION*/
 Void button0_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_1_0;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButton_MENU_1_0_FXN) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButton_MENU_1_0_FXN) != 0) {
             			System_abort("Error registering button callback function");
         }
     if (PIN_registerIntCb(hButton0, &button0_MENU_1_0_FXN) != 0) {
@@ -252,10 +264,12 @@ Void button0_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {
     }
 }
 
-Void powerButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
+/*Menu without donkey, first option (UUSI) selected*/
+/*SEND NEW DONKEY TO SERVER*/
+Void actionButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MAIN_0;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButtonFxn) != 0) {
     			System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
@@ -263,10 +277,12 @@ Void powerButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
     }
 }
 
-Void powerButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
+/*Menu without donkey, second option (LEIKI) selected*/
+/*CALL DONKEY FROM SERVER*/
+Void actionButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MAIN_0;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButtonFxn) != 0) {
     			System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
@@ -274,10 +290,12 @@ Void powerButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
     }
 }
 
-Void powerButton_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {
+/*Menu without donkey, third option (TAKAISIN) selected*/
+/*MOVE BACK TO MAIN VIEW*/
+Void actionButton_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MAIN_0;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButtonFxn) != 0) {
     			System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
@@ -285,10 +303,12 @@ Void powerButton_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {
     }
 }
 
-Void powerButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
+/*Menu with donkey, first option (NUKU) selected*/
+/*PUT DONKEY TO SLEEP, SEND STATS TO SERVER*/
+Void actionButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MAIN_1;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButtonFxn) != 0) {
     			System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
@@ -296,21 +316,31 @@ Void powerButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
     }
 }
 
-Void powerButton_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId) {
+/*Menu with donkey, second option (MOIKKAA) selected*/
+/*SEND BROADCAST MESSAGE*/
+Void actionButton_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MAIN_1;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
-    			System_abort("Error registering button callback function");
+
+    // Test if previous message send complete
+    if(GetTXFlag() == false){
+        Send6LoWPAN(IEEE80154_BROADCAST_ADDR, "Terve", 5);
+        StartReceive6LoWPAN();
+    }
+    if (PIN_registerIntCb(hPowerButton, &actionButtonFxn) != 0) {
+		System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
-                			System_abort("Error registering button callback function");
+    	System_abort("Error registering button callback function");
     }
 }
 
-Void powerButton_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {
+/*Menu with donkey, third option (TAKAISIN) selected*/
+/*MOVE BACK TO MAIN VIEW*/
+Void actionButton_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MAIN_1;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+    if (PIN_registerIntCb(hPowerButton, &actionButtonFxn) != 0) {
     			System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
@@ -322,8 +352,9 @@ Void powerButton_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {
 Void commFxn(UArg arg0, UArg arg1) {
 
 	uint16_t senderAddr;
-	char payload[80];
-	char message[100];
+	char buffer[80];
+	enum MessageType msgType;
+
 
     // Radio to receive mode
 	int32_t result = StartReceive6LoWPAN();
@@ -331,18 +362,35 @@ Void commFxn(UArg arg0, UArg arg1) {
 		System_abort("Wireless receive mode failed");
 	}
 
+	// TASK LOOP
     while (1) {
         
+    	// MESSAGE RECEIVED
     	if (GetRXFlag() == true) {
             
-    		if(Receive6LoWPAN(&senderAddr, payload, 80) != -1){
-    			sprintf(message, "Recv: %s", payload);
-    			System_printf(message);
-    			System_flush();
-    			Display_print0(hDisplay, 3, 1, message);
+    		// RECEIVE MESSAGE, SAVE SENDER ADDRESS
+    		if(Receive6LoWPAN(&senderAddr, buffer, 80) != -1){
+
+				msgType = GetMessageType(buffer);
+				switch(msgType){
+					// Received greeting -> Send reply, update social
+					case HELLO_REC:
+						sprintf(buffer, "Terve:%s", aasi.Name );
+					    if(GetTXFlag() == false){
+					        Send6LoWPAN(senderAddr, buffer, strlen(buffer));
+					        StartReceive6LoWPAN();
+					    }
+					    aasi.Social = aasi.Social + 1;
+						break;
+					// Received reply -> Update social
+					case HELLO_ANS:
+						aasi.Social = aasi.Social + 1;
+						break;
+					default:
+						break;
+
+				}
     		}
-            // WE HAVE A MESSAGE
-            // YOUR CODE HERE TO RECEIVE MESSAGE
         }
 
     	// THIS WHILE LOOP DOES NOT USE Task_sleep
@@ -465,8 +513,10 @@ Void taskFxn(UArg arg0, UArg arg1) {
 			}
 			else if(DisplayState == MENU_0_0){
 				Display_print0(hDisplay, 1, 6, "MENU");
-				Display_print0(hDisplay, 4, 4, "LEIKI");
-				Display_print0(hDisplay, 5, 4, "TAKAISIN");
+
+				Display_print0(hDisplay, 4, 4, "UUSI");
+				Display_print0(hDisplay, 5, 4, "LEIKI");
+				Display_print0(hDisplay, 6, 4, "TAKAISIN");
 
 				GrImageDraw(pContext, &arrowImage, 14, 30);
 				GrFlush(pContext);
@@ -474,12 +524,23 @@ Void taskFxn(UArg arg0, UArg arg1) {
 			else if(DisplayState == MENU_0_1){
 				Display_print0(hDisplay, 1, 6, "MENU");
 
-				Display_print0(hDisplay, 4, 4, "LEIKI");
-				Display_print0(hDisplay, 5, 4, "TAKAISIN");
+				Display_print0(hDisplay, 4, 4, "UUSI");
+				Display_print0(hDisplay, 5, 4, "LEIKI");
+				Display_print0(hDisplay, 6, 4, "TAKAISIN");
 				GrImageDraw(pContext, &arrowImage, 14, 38);
 				GrFlush(pContext);
 
 			}
+			else if(DisplayState == MENU_0_2){
+				Display_print0(hDisplay, 1, 6, "MENU");
+
+				Display_print0(hDisplay, 4, 4, "UUSI");
+				Display_print0(hDisplay, 5, 4, "LEIKI");
+				Display_print0(hDisplay, 6, 4, "TAKAISIN");
+				GrImageDraw(pContext, &arrowImage, 14, 46);
+				GrFlush(pContext);
+			}
+
 			else if(DisplayState == MENU_1_0){
 				Display_print0(hDisplay, 1, 6, "MENU");
 				Display_print0(hDisplay, 4, 4, "NUKU");
@@ -569,7 +630,7 @@ Int main(void) {
 	if(!hPowerButton) {
 		System_abort("Error initializing button shut pins\n");
 	}
-	if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+	if (PIN_registerIntCb(hPowerButton, &actionButtonFxn) != 0) {
 		System_abort("Error registering button callback function");
 	}
 
