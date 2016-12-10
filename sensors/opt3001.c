@@ -44,6 +44,8 @@ double opt3001_get_data(I2C_Handle *i2c) {
 
 	uint16_t e=0;
 	double lux;
+	uint16_t light_r;
+	uint8_t light_e;
 
 	/* Read sensor state */
 	i2cTransaction.slaveAddress = Board_OPT3001_ADDR;
@@ -68,22 +70,23 @@ double opt3001_get_data(I2C_Handle *i2c) {
 	/* Data available? */
 	if (e & OPT3001_DATA_READY) {
 
-		/* FILL OUT THIS DATA STRUCTURE TO GET LUX DATA
-		txBuffer[0] = OPT3001_REG_CONFIG;
+		// FILL OUT THIS DATA STRUCTURE TO GET LUX DATA
+		txBuffer[0] = OPT3001_REG_RESULT;
 	    i2cTransaction.slaveAddress = Board_OPT3001_ADDR;
 	    i2cTransaction.writeBuf = txBuffer;
 	    i2cTransaction.writeCount = 1;
 	    i2cTransaction.readBuf = rxBuffer;
 	    i2cTransaction.readCount = 2;
-		*/
+
 
 		if (I2C_transfer(*i2c, &i2cTransaction)) {
 
 			// HERE YOU NEED TO GET THE LUX VALUE FROM RXBUFFER
 	    	// ACCORDING TO DATASHEET
-			uint16_t light_r = (rxBuffer[0] & 0xFFF);
-			uint8_t light_e = (rxBuffer[0] >> 12);
-			lux = 0,01 * 2^(light_e) * light_r;
+			light_r = (rxBuffer[1] | ((rxBuffer[0] & 0xF) << 8));
+			light_e = rxBuffer[0] >> 4;
+			light_e = pow(2, light_e);
+			lux = (double)(0.01 * light_e * light_r);
 
 
 		} else {
@@ -93,6 +96,6 @@ double opt3001_get_data(I2C_Handle *i2c) {
 		}
 	}
 
-	// FIX THIS
+	// FIXED THIS
 	return lux;
 }

@@ -37,11 +37,10 @@ double tmp007_get_data(I2C_Handle *i2c) {
 
 	if (I2C_transfer(*i2c, &i2cTransaction)) {
 
-		double temp;
 		// HERE YOU GET THE TEMPERATURE VALUE FROM RXBUFFER
 		// ACCORDING TO DATASHEET
-		int16_t temperature = (rxBuffer[0] >> 2);
-		temp = (0,03125 * temperature);
+		int16_t temp = (rxBuffer[1] >> 2 | rxBuffer[0] << 6);
+		temperature = (0.03125 * temp);
 
 	} else {
 

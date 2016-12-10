@@ -24,6 +24,8 @@
 #include "wireless/comm_lib.h"
 #include "sensors/bmp280.h"
 #include "Helpers/magnify.h"
+#include "sensors/opt3001.h"
+#include "sensors/tmp007.h"
 #include "Helpers/messages.h"
 #include "Aasi.h"
 
@@ -462,18 +464,20 @@ Void taskFxn(UArg arg0, UArg arg1) {
 	};
 
     /* Create I2C for usage */
-//    I2C_Params_init(&i2cParams);
-//    i2cParams.bitRate = I2C_400kHz;
-//    i2c = I2C_open(Board_I2C0, &i2cParams);
-//    if (i2c == NULL) {
-//        System_abort("Error Initializing I2C\n");
-//    }
-//    else {
-//        System_printf("I2C Initialized!\n");
-//    }
-//
-//    // SETUP SENSORS HERE
-//    bmp280_setup(&i2c);
+    I2C_Params_init(&i2cParams);
+    i2cParams.bitRate = I2C_400kHz;
+    i2c = I2C_open(Board_I2C0, &i2cParams);
+    if (i2c == NULL) {
+        System_abort("Error Initializing I2C\n");
+    }
+    else {
+        System_printf("I2C Initialized!\n");
+    }
+
+    // SETUP SENSORS HERE
+    bmp280_setup(&i2c);
+    tmp007_setup(&i2c);
+    opt3001_setup(&i2c);
 
     /* Display */
     Display_Params displayParams;
