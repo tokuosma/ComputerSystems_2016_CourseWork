@@ -8,6 +8,7 @@ enum MessageType GetMessageType(char * msg){
 	else if(strcmp(msg, "Terve:") == 0){
 		return HELLO_ANS;
 	}
-
-
+	else{
+		return UNKNOWN;
+	}
 }
