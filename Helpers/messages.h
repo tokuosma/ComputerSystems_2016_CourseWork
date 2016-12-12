@@ -14,6 +14,9 @@ enum MessageType{
 	UNKNOWN
 };
 
+
 enum MessageType GetMessageType(char * msg);
+void GetErrorMessage(enum MessageType msgType, char * trgt );
+
 
 #endif

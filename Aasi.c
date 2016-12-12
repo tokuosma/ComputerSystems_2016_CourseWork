@@ -32,8 +32,12 @@
 //    return 0;
 //}
 
+const char AASI_NAME[16] = "Duffy";
+
 void  serialize_aasi_new(struct Aasi aasi, char * buffer){
-   sprintf(buffer, "Uusi:%d,%d,%d,%d,%d,%d,%d,%d,%s\n",
+
+	char temp [80];
+	sprintf(temp, "Uusi:%d,%d,%d,%d,%d,%d,%d,%d,%s\n",
            aasi.Image[0],
            aasi.Image[1],
            aasi.Image[2],
@@ -43,6 +47,7 @@ void  serialize_aasi_new(struct Aasi aasi, char * buffer){
            aasi.Image[6],
            aasi.Image[7],
            aasi.Name);
+	memcpy(buffer, temp, strlen(temp));
 }
 
 void serialize_aasi_sleep(struct Aasi aasi, char * buffer){
