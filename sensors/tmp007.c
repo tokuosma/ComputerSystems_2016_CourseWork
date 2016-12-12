@@ -26,18 +26,21 @@ double tmp007_get_data(I2C_Handle *i2c) {
 
 	double temperature = 0.0;
 
-	/* FILL OUT THIS DATA STRUCTURE TO GET TEMPERATURE DATA
-    i2cTransaction.slaveAddress = ...
-    i2cTransaction.writeBuf = ...
-    i2cTransaction.writeCount = ...
-    i2cTransaction.readBuf = ...
-    i2cTransaction.readCount = ...
-	*/
+	// FILL OUT THIS DATA STRUCTURE TO GET TEMPERATURE DATA
+	txBuffer[0] = TMP007_REG_TEMP;
+    i2cTransaction.slaveAddress = Board_TMP007_ADDR;
+    i2cTransaction.writeBuf = txBuffer;
+    i2cTransaction.writeCount = 1;
+    i2cTransaction.readBuf = rxBuffer;
+    i2cTransaction.readCount = 2;
+
 
 	if (I2C_transfer(*i2c, &i2cTransaction)) {
 
 		// HERE YOU GET THE TEMPERATURE VALUE FROM RXBUFFER
 		// ACCORDING TO DATASHEET
+		int16_t temp = (rxBuffer[1] >> 2 | rxBuffer[0] << 6);
+		temperature = (0.03125 * temp);
 
 	} else {
 
