@@ -15,6 +15,7 @@
 #include <ti/drivers/I2C.h>
 #include <ti/drivers/Power.h>
 #include <ti/drivers/power/PowerCC26XX.h>
+#include <ti/drivers/PWM.h>
 #include <ti/mw/display/Display.h>
 #include <ti/mw/display/DisplayExt.h>
 
@@ -500,7 +501,6 @@ Void taskFxn(UArg arg0, UArg arg1) {
 				sprintf(stats_line_1, "   %4d   %4d", aasi.Move, aasi.Sun);
 				sprintf(stats_line_2, "   %4d   %4d", aasi.Air, aasi.Social);
 				Display_print0(hDisplay, 10, 5, aasi.Name);
-				// TODO: Tulosta aasin statsit sprinf:n kautta muuttujiin ja korvaa tähän
 
 				Display_print0(hDisplay, 1, 0, stats_line_1);
 				Display_print0(hDisplay, 2, 0, stats_line_2);
