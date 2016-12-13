@@ -118,8 +118,11 @@ bool DisplayChanged = true;
 
 // Communication error message
 char ERROR_MSG[16] = "";
-// Boolean to determine if request sent to server
-bool AwaitingReply = false;
+
+// Boolean to determine if a request was sent to server
+bool AwaitingReplyNew = false;
+bool AwaitingReplyPlay = false;
+bool AwaitingReplySleep = false;
 
 /* Pin Button1 configured as power button */
 static PIN_Handle hActionButton;
@@ -155,12 +158,6 @@ Clock_Handle serverTimeoutHandle;
 Clock_Params serverTimeoutParams;
 UInt serverTimeoutValue;
 
-Void serverTimeoutFxn(UArg arg0) {
-	char str[60];
-	sprintf(str,"System time: %.5fs\n", (double)Clock_getTicks() / 100000.0);
-	System_printf(str);
-	System_flush();
-}
 
 // BUTTON PROTOTYPES
 Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId);
@@ -184,14 +181,41 @@ Void actionButton_ERROR_FXN(PIN_Handle handle, PIN_Id pinId);
 Void actionButton_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId);
 Void actionButton_WAIT_REPLY_PLAY_FXN(PIN_Handle handle, PIN_Id pinId);
 
+
+Void serverTimeoutFxn(UArg arg0) {
+	AwaitingReplyNew = false;
+	AwaitingReplyPlay = false;
+	AwaitingReplySleep = false;
+	DisplayState = ERROR;
+	DisplayChanged = true;
+
+	memcpy(ERROR_MSG, "SERVER TIMEOUT", 15);
+
+    if (PIN_registerIntCb(hActionButton, &actionButton_ERROR_FXN) != 0) {
+		System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_ERROR_FXN) != 0) {
+		System_abort("Error registering button callback function");
+    }
+
+    Clock_delete(&serverTimeoutHandle);
+}
+
+
+
 /*STATE: Waiting for server reply*/
 /*DO: Cancel request*/
 Void button0_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
 
-	DisplayState = MENU_0_0;
+	if(serverTimeoutHandle != NULL){
+		Clock_stop(serverTimeoutHandle);
+		Clock_delete(&serverTimeoutHandle);
+	}
+	AwaitingReplyNew == false;
+	DisplayState = MAIN_0;
 	DisplayChanged = true;
 
-	//TODO: Lisää Clock_stop()
+
     if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
 		System_abort("Error registering button callback function");
     }
@@ -205,10 +229,14 @@ Void button0_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
 /*DO: CANCEL REQUEST*/
 Void actionButton_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
 
-	DisplayState = MENU_0_0;
+	if(serverTimeoutHandle != NULL){
+		Clock_stop(serverTimeoutHandle);
+		Clock_delete(&serverTimeoutHandle);
+	}
+	AwaitingReplyNew == false;
+	DisplayState = MAIN_0;
 	DisplayChanged = true;
 
-	//TODO: Lisää Clock_stop()
     if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
 		System_abort("Error registering button callback function");
     }
@@ -224,12 +252,6 @@ Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 
     DisplayState = MENU_0_0;
     DisplayChanged = true;
-
-//    serverTimeoutHandle = Clock_create((Clock_FuncPtr) serverTimeoutFxn, serverTimeoutValue, &serverTimeoutParams, NULL);
-//    if (serverTimeoutHandle == NULL) {
-//    	System_abort("Clock create failed");
-//    }
-//    Clock_start(serverTimeoutHandle);
 
     if (PIN_registerIntCb(hActionButton, &actionButton_MENU_0_0_FXN) != 0) {
     			System_abort("Error registering button callback function");
@@ -389,17 +411,24 @@ Void actionButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 
     if(GetTXFlag() == false){
         Send6LoWPAN(IEEE80154_SINK_ADDR, payload, strlen(payload));
+        AwaitingReplyNew = true;
         StartReceive6LoWPAN();
     }
 
-	DisplayState = MAIN_0;
+	DisplayState = WAIT_REPLY_NEW;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
+    if (PIN_registerIntCb(hActionButton, &actionButton_WAIT_REPLY_NEW_FXN) != 0) {
 		System_abort("Error registering button callback function");
     }
-    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
+    if (PIN_registerIntCb(hButton0, &button0_WAIT_REPLY_NEW_FXN) != 0) {
 		System_abort("Error registering button callback function");
     }
+
+    serverTimeoutHandle = Clock_create((Clock_FuncPtr) serverTimeoutFxn, serverTimeoutValue, &serverTimeoutParams, NULL);
+    if (serverTimeoutHandle == NULL) {
+    	System_abort("Clock create failed");
+    }
+    Clock_start(serverTimeoutHandle);
 }
 
 /*STATE: Menu without donkey, second option (LEIKI) selected*/
@@ -517,80 +546,52 @@ Void commFxn(UArg arg0, UArg arg1) {
 
 	// TASK LOOP
     while (1) {
-        
     	// MESSAGE RECEIVED
     	if (GetRXFlag() == true) {
-            
     		// RECEIVE MESSAGE, SAVE SENDER ADDRESS
     		if(Receive6LoWPAN(&senderAddr, buffer, 80) != -1){
-
 				msgType = GetMessageType(buffer);
-				switch(msgType){
-					// Received greeting -> Send reply, update social
-					case HELLO_REC:
-						sprintf(buffer, "Terve:%s", aasi.Name );
-					    if(GetTXFlag() == false){
-					        Send6LoWPAN(senderAddr, buffer, strlen(buffer));
-					        StartReceive6LoWPAN();
-					    }
-					    aasi.Social = aasi.Social + 1;
-						break;
-					// Received reply -> Update social
-					case HELLO_ANS:
-						aasi.Social = aasi.Social + 1;
-						break;
-					case ERROR_1:
-						DisplayState = ERROR;
-						DisplayChanged = true;
-						GetErrorMessage(msgType, ERROR_MSG);
-						if (PIN_registerIntCb(hActionButton, &actionButton_ERROR_FXN) != 0) {
-							System_abort("Error registering button callback function");
-						}
-						if (PIN_registerIntCb(hButton0, &button0_ERROR_FXN) != 0) {
-							System_abort("Error registering button callback function");
-						}
-						break;
-					case ERROR_2:
-						DisplayState = ERROR;
-						DisplayChanged = true;
-						GetErrorMessage(msgType, ERROR_MSG);
-						if (PIN_registerIntCb(hActionButton, &actionButton_ERROR_FXN) != 0) {
-							System_abort("Error registering button callback function");
-						}
-						if (PIN_registerIntCb(hButton0, &button0_ERROR_FXN) != 0) {
-							System_abort("Error registering button callback function");
-						}
-						break;
-					case ERROR_3:
-						DisplayState = ERROR;
-						DisplayChanged = true;
-						GetErrorMessage(msgType, ERROR_MSG);
-						if (PIN_registerIntCb(hActionButton, &actionButton_ERROR_FXN) != 0) {
-							System_abort("Error registering button callback function");
-						}
-						if (PIN_registerIntCb(hButton0, &button0_ERROR_FXN) != 0) {
-							System_abort("Error registering button callback function");
-						}
-						break;
-					case ERROR_4:
-						DisplayState = ERROR;
-						DisplayChanged = true;
-						GetErrorMessage(msgType, ERROR_MSG);
-						if (PIN_registerIntCb(hActionButton, &actionButton_ERROR_FXN) != 0) {
-							System_abort("Error registering button callback function");
-						}
-						if (PIN_registerIntCb(hButton0, &button0_ERROR_FXN) != 0) {
-							System_abort("Error registering button callback function");
-						}
-						break;
-
-					default:
-						break;
+				// Received greeting -> Send reply, update social
+				if(msgType == HELLO_REC){
+					sprintf(buffer, "Terve:%s", aasi.Name );
+					if(GetTXFlag() == false){
+						Send6LoWPAN(senderAddr, buffer, strlen(buffer));
+						StartReceive6LoWPAN();
+					}
+					aasi.Social = aasi.Social + 1;
 				}
-    		}
-        }
+				// Received reply -> Update social
+				else if(msgType == HELLO_ANS){
+					aasi.Social = aasi.Social + 1;
+				}
+				// Awaiting reply, receive error msg --> Move to error view
+				else if((msgType == ERROR_1 || msgType == ERROR_2 || msgType == ERROR_3 ||	msgType == ERROR_4 )
+					&& (AwaitingReplyNew == true) || AwaitingReplyPlay == true || AwaitingReplySleep == true)
+				{
+					if(serverTimeoutHandle != NULL){
+						Clock_stop(serverTimeoutHandle);
+						Clock_delete(&serverTimeoutHandle);
+					}
+					DisplayState = ERROR;
+					DisplayChanged = true;
+					GetErrorMessage(msgType, ERROR_MSG);
 
-    	// THIS WHILE LOOP DOES NOT USE Task_sleep
+					if (PIN_registerIntCb(hActionButton, &actionButton_ERROR_FXN) != 0) {
+						System_abort("Error registering button callback function");
+					}
+					if (PIN_registerIntCb(hButton0, &button0_ERROR_FXN) != 0) {
+						System_abort("Error registering button callback function");
+					}
+				}
+				else if(msgType == ACK_OK)
+				{
+					continue;
+				}
+				else{
+					continue;
+				}
+			}
+        }
     }
 }
 
@@ -842,7 +843,7 @@ Int main(void) {
     Board_initGeneral();
 
     /* Clocks */
-    serverTimeoutValue = 1000000 / Clock_tickPeriod;
+    serverTimeoutValue = 5000000 / Clock_tickPeriod;
     Clock_Params_init(&serverTimeoutParams);
     serverTimeoutParams.period = serverTimeoutValue;
     serverTimeoutParams.startFlag = FALSE;

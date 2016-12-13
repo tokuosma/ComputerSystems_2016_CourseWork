@@ -2,11 +2,12 @@
 #include "Helpers/messages.h"
 
 
-const char ERROR_1_MSG[16] = "UNKNOW CMD";
-const char ERROR_2_MSG[16] = "MALFORMED CMD";
-const char ERROR_3_MSG[16] = "DONKEY EXISTS";
-const char ERROR_4_MSG[16] = "DNKY NOT FOUND";
+const char ERROR_1_MSG[16] = "1:UNKNOWN CMD";
+const char ERROR_2_MSG[16] = "2:MALFORMED CMD";
+const char ERROR_3_MSG[16] = "3:DONKEY EXISTS";
+const char ERROR_4_MSG[16] = "4:DNKY NOT FOUND";
 const char ERROR_UNKNOWN_MSG[16] = "UNKNOWN MSG";
+const char ERROR_SERVER_TIMEOUT[16] = "SERVER TIMEOUT";
 
 enum MessageType GetMessageType(char * msg){
 	if(strcmp(msg, "Terve") == 0){

@@ -7,6 +7,7 @@ enum MessageType{
 	HELLO_REC,
 	HELLO_ANS,
 	ACK_OK,
+	ACK_PLAY,
 	ERROR_1,
 	ERROR_2,
 	ERROR_3,
