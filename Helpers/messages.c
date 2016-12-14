@@ -17,9 +17,10 @@ enum MessageType GetMessageType(char * msg){
 		if(strlen(msg) == 3){
 		  return ACK_OK;
 		}
-		else if(strlen(msg) > 3){
+		else{
 		  return ACK_PLAY;
 		}
+
 	}
 	else if(strncmp(msg, "Terve:", 6) == 0){
 		return HELLO_ANS;

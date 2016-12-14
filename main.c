@@ -18,6 +18,8 @@
 #include <ti/drivers/PWM.h>
 #include <ti/mw/display/Display.h>
 #include <ti/mw/display/DisplayExt.h>
+#include <ti/mw/remotecontrol/buzzer.h>
+
 
 /* Board Header files */
 #include "Board.h"
@@ -492,7 +494,7 @@ Void actionButton_MAIN_FXN(PIN_Handle handle, PIN_Id pinId) {
 /*DO: SEND NEW DONKEY TO SERVER*/
 Void actionButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 
-	char payload[80];
+	char payload[80] = "";
 
 	serialize_aasi_new(NEW_AASI, payload );
 
@@ -520,7 +522,7 @@ Void actionButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 /*DO: CALL DONKEY FROM SERVER*/
 Void actionButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
 
-	char payload[80];
+	char payload[80] = "";
 	serialize_aasi_play(payload);
 
 
@@ -563,7 +565,7 @@ Void actionButton_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {
 Void actionButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 
 
-	char payload[80];
+	char payload[80] = "";
 	serialize_aasi_sleep(aasi, payload);
 
 	Send6LoWPAN(IEEE80154_SINK_ADDR, payload, strlen(payload));
@@ -653,7 +655,8 @@ Void actionButton_ERROR_FXN(PIN_Handle handle, PIN_Id pinId) {
 Void commFxn(UArg arg0, UArg arg1) {
 
 	uint16_t senderAddr;
-	char buffer[80];
+	char buffer[80] = "";
+	char empty[80] = "";
 	enum MessageType msgType;
     // Radio to receive mode
 	int32_t result = StartReceive6LoWPAN();
@@ -695,6 +698,9 @@ Void commFxn(UArg arg0, UArg arg1) {
 						Clock_stop(serverTimeoutHandle);
 						Clock_delete(&serverTimeoutHandle);
 					}
+					AwaitingReplyNew = false;
+					AwaitingReplyPlay = false;
+					AwaitingReplySleep = false;
 					DisplayState = ERROR;
 					DisplayChanged = true;
 					GetErrorMessage(msgType, ERROR_MSG);
@@ -726,7 +732,7 @@ Void commFxn(UArg arg0, UArg arg1) {
 					}
 				}
 				else if(AwaitingReplySleep == true){
-					if(serverTimeoutHandle == NULL){
+					if(serverTimeoutHandle != NULL){
 						Clock_stop(serverTimeoutHandle);
 						Clock_delete(&serverTimeoutHandle);
 					}
@@ -773,6 +779,7 @@ Void commFxn(UArg arg0, UArg arg1) {
 			else{
 				continue;
 			}
+			memcpy(buffer, empty, 80);
 		}
 
     }
@@ -871,9 +878,6 @@ Void taskFxn(UArg arg0, UArg arg1) {
     if (pContext == NULL) {
     	System_abort("Error initializing graphics library\n");
     }
-
-//    char msg1[] = "Virhe:1:malformed - unknown command";
-//    enum MessageType type = GetMessageType(msg1);
 
     char stats_line_1[16];
     char stats_line_2[16];
