@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <math.h>
 /* XDCtools files */
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
@@ -117,7 +118,6 @@ const double PRES_LIMIT = 0;
 Char taskStack[STACKSIZE];
 Char taskCommStack[STACKSIZE];
 Char taskSensorsStack[STACKSIZE];
-Char taskAccelStack[STACKSIZE];
 
 /* Display */
 Display_Handle hDisplay;
@@ -1059,6 +1059,23 @@ Void sensorsFxn(UArg arg0, UArg arg1) {
      //Create I2C for usage
         I2C_Params_init(&i2cParams);
         i2cParams.bitRate = I2C_400kHz;
+
+        I2C_Params_init(&i2cMPUParams);
+        i2cMPUParams.bitRate = I2C_400kHz;
+        i2cMPUParams.custom = (uintptr_t)&i2cMPUCfg;
+
+        i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
+        if (i2cMPU == NULL) {
+            System_abort("Error Initializing I2CMPU\n");
+        }
+        PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_ON);
+        Task_sleep(100000 / Clock_tickPeriod);
+        System_printf("MPU9250: Power ON\n");
+        System_flush();
+
+        mpu9250_setup(&i2cMPU);
+        I2C_close(i2cMPU);
+
         i2c = I2C_open(Board_I2C0, &i2cParams);
         if (i2c == NULL) {
             System_abort("Error Initializing I2C\n");
@@ -1085,53 +1102,21 @@ Void sensorsFxn(UArg arg0, UArg arg1) {
 		bmp280_get_data(&i2c, &pressure, &temp_p);
 		sprintf(pres_text, "%.2f hPa", pressure);
 		System_printf("Pressure: %s\n", pres_text);
-		System_flush();
 		I2C_close(i2c);
 
+		i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
+		if (i2cMPU == NULL) {
+			System_abort("Error Initializing I2CMPU\n");
+		}
+		mpu9250_get_data(&i2cMPU, &ax, &ay, &az, &gx, &gy, &gz);
+		accel = sqrt(pow(ax,2) + pow(ay,2) + pow(az,2));
+		sprintf(accel_text, "%.2f G", accel);
+		System_printf("Acceleration: %s\n", accel_text);
+		System_flush();
+		I2C_close(i2cMPU);
 		Task_sleep(1000000 / Clock_tickPeriod);
 	}
-}
-
-Void accelFxn(UArg arg0, UArg arg1) {
-
-	I2C_Handle i2cMPU; // INTERFACE FOR MPU9250 SENSOR
-	I2C_Params i2cMPUParams;
-
-    double accel;
-    char accel_text[20];
-	float ax, ay, az, gx, gy, gz;
-
-	Task_sleep(1000000 / Clock_tickPeriod);
-    // Create I2C for usage
-		I2C_Params_init(&i2cMPUParams);
-	    i2cMPUParams.bitRate = I2C_400kHz;
-	    i2cMPUParams.custom = (uintptr_t)&i2cMPUCfg;
-        i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
-	    if (i2cMPU == NULL) {
-            System_abort("Error Initializing I2CMPU\n");
-        }
-	    PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_ON);
-	    //Task_sleep(100000 / Clock_tickPeriod);
-	    System_printf("MPU9250: Power ON\n");
-	    System_flush();
-
-	    mpu9250_setup(&i2cMPU);
-	    I2C_close(i2cMPU);
-	    while (1) {
-	    	i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
-	    		if (i2cMPU == NULL) {
-	    	        System_abort("Error Initializing I2CMPU\n");
-	    	    }
-	    	mpu9250_get_data(&i2cMPU, &ax, &ay, &az, &gx, &gy, &gz);
-	    	accel = (pow(&ax,2) + pow(&ay,2) + pow(&az,2));
-	    	accel = sqrt(accel);
-	    	sprintf(accel_text, "%.2f G", accel);
-	    	System_printf("Acceleration: %s\n", accel_text);
-	    	System_flush();
-	    	I2C_close(i2cMPU);
-	    	Task_sleep(1000000 / Clock_tickPeriod);
-	    }
-	    PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_OFF);
+	PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_OFF);
 }
 
 Int main(void) {
@@ -1143,8 +1128,6 @@ Int main(void) {
 	Task_Params taskCommParams;
 	Task_Handle taskSensors;
 	Task_Params taskSensorsParams;
-	Task_Handle taskAccel;
-	Task_Params taskAccelParams;
 
     // Initialize board
 	Board_initGeneral();
@@ -1181,6 +1164,11 @@ Int main(void) {
         System_abort("Error initializing LED pin\n");
     }
 
+    hMpuPin = PIN_open(&MpuPinState, MpuPinConfig);
+    if (hMpuPin == NULL) {
+      	System_abort("Pin open failed!");
+    }
+
     /* Task */
     Task_Params_init(&taskParams);
     taskParams.stackSize = STACKSIZE;
@@ -1215,21 +1203,6 @@ Int main(void) {
     if (taskSensors == NULL) {
        	System_abort("Sensors task create failed!");
     }
-
-    // Acceleration sensor task
-    hMpuPin = PIN_open(&MpuPinState, MpuPinConfig);
-    if (hMpuPin == NULL) {
-       	System_abort("Pin open failed!");
-    }
-
-    Task_Params_init(&taskAccelParams);
-    taskAccelParams.stackSize = STACKSIZE;
-    taskAccelParams.stack = &taskAccelStack;
-    taskAccelParams.priority=2;
-	taskAccel = Task_create((Task_FuncPtr)accelFxn, &taskAccelParams, NULL);
-	if (taskAccel == NULL) {
-		System_abort("Accel task create failed!");
-	}
 
     System_printf("Hello world!\n");
     System_flush();
