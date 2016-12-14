@@ -117,6 +117,8 @@ enum DisplayStates {
    ERROR
 };
 
+const uint32_t imgPalette[] = {0, 0xFFFFFF};
+tImage aasiImage ;
 // Global display state
 enum DisplayStates DisplayState = MAIN_0;
 bool DisplayChanged = true;
@@ -794,8 +796,7 @@ Void taskFxn(UArg arg0, UArg arg1) {
 
 	uint8_t aasiImageMag[128] = {0};
 	magnify(aasi.Image, aasiImageMag);
-    const uint32_t imgPalette[] = {0, 0xFFFFFF};
-	const tImage aasiImage = {
+	const tImage initialImage =  {
 		.BPP = IMAGE_FMT_1BPP_UNCOMP,
 		.NumColors = 2,
 		.XSize = 31,
@@ -803,6 +804,8 @@ Void taskFxn(UArg arg0, UArg arg1) {
 		.pPalette = imgPalette,
 		.pPixel = aasiImageMag
 	};
+
+	aasiImage = initialImage;
 
 	const tImage moveImage = {
 			.BPP = IMAGE_FMT_1BPP_UNCOMP,
@@ -1091,6 +1094,7 @@ Int main(void) {
     if (taskComm == NULL) {
     	System_abort("Task create failed!");
     }
+
 
 
     System_printf("Hello world!\n");
