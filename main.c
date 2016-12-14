@@ -67,6 +67,7 @@ struct Aasi NEW_AASI = {
 	.Active = false
 };
 
+
 // ICONS
 const uint8_t IconMove[8] = {
 		0x00,0xE0,0xE0,0xE0,0xE0,0xFE,0xFF,0xFF
@@ -109,6 +110,8 @@ enum DisplayStates {
    MENU_1_2,
    WAIT_REPLY_NEW,
    WAIT_REPLY_PLAY,
+   WAIT_REPLY_SLEEP,
+   SUCCESS,
    ERROR
 };
 
@@ -118,6 +121,7 @@ bool DisplayChanged = true;
 
 // Communication error message
 char ERROR_MSG[16] = "";
+uint8_t receiveStatus;
 
 // Boolean to determine if a request was sent to server
 bool AwaitingReplyNew = false;
@@ -161,6 +165,7 @@ UInt serverTimeoutValue;
 
 // BUTTON PROTOTYPES
 Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId);
+Void button0_MAIN_1_FXN(PIN_Handle handle, PIN_Id pinId);
 Void button0_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId);
 Void button0_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId);
 Void button0_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId);
@@ -203,7 +208,7 @@ Void serverTimeoutFxn(UArg arg0) {
 
 
 
-/*STATE: Waiting for server reply*/
+/*STATE: Waiting for server reply after sending new Donkey*/
 /*DO: Cancel request*/
 Void button0_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
 
@@ -211,7 +216,7 @@ Void button0_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
 		Clock_stop(serverTimeoutHandle);
 		Clock_delete(&serverTimeoutHandle);
 	}
-	AwaitingReplyNew == false;
+	AwaitingReplyNew = false;
 	DisplayState = MAIN_0;
 	DisplayChanged = true;
 
@@ -225,15 +230,15 @@ Void button0_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
 
 }
 
-/*STATE: Waiting for server reply*/
-/*DO: CANCEL REQUEST*/
-Void actionButton_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
+/*STATE: Waiting for server reply after sending play message*/
+/*DO: Cancel request*/
+Void button0_WAIT_REPLY_PLAY_FXN(PIN_Handle handle, PIN_Id pinId){
 
 	if(serverTimeoutHandle != NULL){
 		Clock_stop(serverTimeoutHandle);
 		Clock_delete(&serverTimeoutHandle);
 	}
-	AwaitingReplyNew == false;
+	AwaitingReplyPlay = false;
 	DisplayState = MAIN_0;
 	DisplayChanged = true;
 
@@ -241,6 +246,88 @@ Void actionButton_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
 		System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
+		System_abort("Error registering button callback function");
+    }
+
+}
+
+/*STATE: Waiting for server reply after sending sleep message*/
+/*DO: Cancel request*/
+Void button0_WAIT_REPLY_SLEEP_FXN(PIN_Handle handle, PIN_Id pinId){
+
+	if(serverTimeoutHandle != NULL){
+		Clock_stop(serverTimeoutHandle);
+		Clock_delete(&serverTimeoutHandle);
+	}
+	AwaitingReplySleep = false;
+	DisplayState = MAIN_1;
+	DisplayChanged = true;
+
+    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
+		System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
+		System_abort("Error registering button callback function");
+    }
+
+}
+
+/*STATE: Waiting for server reply after sending new donkey*/
+/*DO: CANCEL REQUEST*/
+Void actionButton_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
+
+	if(serverTimeoutHandle != NULL){
+		Clock_stop(serverTimeoutHandle);
+		Clock_delete(&serverTimeoutHandle);
+	}
+	AwaitingReplyNew = false;
+	DisplayState = MAIN_0;
+	DisplayChanged = true;
+
+    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
+		System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
+		System_abort("Error registering button callback function");
+    }
+}
+
+/*STATE: Waiting for server reply after sending play message*/
+/*DO: CANCEL REQUEST*/
+Void actionButton_WAIT_REPLY_PLAY_FXN(PIN_Handle handle, PIN_Id pinId){
+
+	if(serverTimeoutHandle != NULL){
+		Clock_stop(serverTimeoutHandle);
+		Clock_delete(&serverTimeoutHandle);
+	}
+	AwaitingReplyPlay = false;
+	DisplayState = MAIN_0;
+	DisplayChanged = true;
+
+    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
+		System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
+		System_abort("Error registering button callback function");
+    }
+}
+
+/*STATE: Waiting for server reply after sending sleep command*/
+/*DO: CANCEL REQUEST*/
+Void actionButton_WAIT_REPLY_SLEEP_FXN(PIN_Handle handle, PIN_Id pinId){
+
+	if(serverTimeoutHandle != NULL){
+		Clock_stop(serverTimeoutHandle);
+		Clock_delete(&serverTimeoutHandle);
+	}
+	AwaitingReplySleep = false;
+	DisplayState = MAIN_1;
+	DisplayChanged = true;
+
+    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
+		System_abort("Error registering button callback function");
+    }
+    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
 		System_abort("Error registering button callback function");
     }
 }
@@ -326,10 +413,10 @@ Void button0_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_1_1;
     DisplayChanged = true;
     if (PIN_registerIntCb(hActionButton, &actionButton_MENU_1_1_FXN) != 0) {
-            			System_abort("Error registering button callback function");
-        }
+		System_abort("Error registering button callback function");
+	}
     if (PIN_registerIntCb(hButton0, &button0_MENU_1_1_FXN) != 0) {
-    			System_abort("Error registering button callback function");
+		System_abort("Error registering button callback function");
     }
 }
 
@@ -339,10 +426,10 @@ Void button0_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_1_2;
     DisplayChanged = true;
     if (PIN_registerIntCb(hActionButton, &actionButton_MENU_1_2_FXN) != 0) {
-            			System_abort("Error registering button callback function");
-        }
+		System_abort("Error registering button callback function");
+	}
     if (PIN_registerIntCb(hButton0, &button0_MENU_1_2_FXN) != 0) {
-    			System_abort("Error registering button callback function");
+		System_abort("Error registering button callback function");
     }
 }
 
@@ -352,10 +439,10 @@ Void button0_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MENU_1_0;
     DisplayChanged = true;
     if (PIN_registerIntCb(hActionButton, &actionButton_MENU_1_0_FXN) != 0) {
-            			System_abort("Error registering button callback function");
-        }
+		System_abort("Error registering button callback function");
+	}
     if (PIN_registerIntCb(hButton0, &button0_MENU_1_0_FXN) != 0) {
-    			System_abort("Error registering button callback function");
+		System_abort("Error registering button callback function");
     }
 }
 
@@ -409,11 +496,9 @@ Void actionButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 
 	serialize_aasi_new(NEW_AASI, payload );
 
-    if(GetTXFlag() == false){
-        Send6LoWPAN(IEEE80154_SINK_ADDR, payload, strlen(payload));
-        AwaitingReplyNew = true;
-        StartReceive6LoWPAN();
-    }
+	Send6LoWPAN(IEEE80154_SINK_ADDR, payload, strlen(payload));
+	AwaitingReplyNew = true;
+	receiveStatus = StartReceive6LoWPAN();
 
 	DisplayState = WAIT_REPLY_NEW;
     DisplayChanged = true;
@@ -434,14 +519,30 @@ Void actionButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 /*STATE: Menu without donkey, second option (LEIKI) selected*/
 /*DO: CALL DONKEY FROM SERVER*/
 Void actionButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MAIN_0;
+
+	char payload[80];
+	serialize_aasi_play(payload);
+
+
+	Send6LoWPAN(IEEE80154_SINK_ADDR, payload, strlen(payload));
+	AwaitingReplyPlay = true;
+	receiveStatus = StartReceive6LoWPAN();
+
+	DisplayState = WAIT_REPLY_PLAY;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
+
+    if (PIN_registerIntCb(hActionButton, &actionButton_WAIT_REPLY_PLAY_FXN) != 0) {
 		System_abort("Error registering button callback function");
     }
-    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
+    if (PIN_registerIntCb(hButton0, &button0_WAIT_REPLY_PLAY_FXN) != 0) {
 		System_abort("Error registering button callback function");
     }
+
+	serverTimeoutHandle = Clock_create((Clock_FuncPtr)serverTimeoutFxn, serverTimeoutValue, &serverTimeoutParams, NULL);
+	if(serverTimeoutHandle == NULL){
+    	System_abort("Clock create failed");
+	}
+	Clock_start(serverTimeoutHandle);
 }
 
 /*STATE: Menu without donkey, third option (TAKAISIN) selected*/
@@ -450,24 +551,43 @@ Void actionButton_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayState = MAIN_0;
     DisplayChanged = true;
     if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-    			System_abort("Error registering button callback function");
+		System_abort("Error registering button callback function");
     }
     if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
-                			System_abort("Error registering button callback function");
+		System_abort("Error registering button callback function");
     }
 }
 
 /*STATE: Menu with donkey, first option (NUKU) selected*/
 /*DO: PUT DONKEY TO SLEEP, SEND STATS TO SERVER*/
 Void actionButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MAIN_1;
+
+
+	char payload[80];
+	serialize_aasi_sleep(aasi, payload);
+
+	Send6LoWPAN(IEEE80154_SINK_ADDR, payload, strlen(payload));
+	AwaitingReplySleep = true;
+	receiveStatus = StartReceive6LoWPAN();
+
+
+	DisplayState = WAIT_REPLY_SLEEP;
     DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-    			System_abort("Error registering button callback function");
+
+
+    if (PIN_registerIntCb(hActionButton, &actionButton_WAIT_REPLY_SLEEP_FXN) != 0) {
+		System_abort("Error registering button callback function");
     }
-    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
-                			System_abort("Error registering button callback function");
+    if (PIN_registerIntCb(hButton0, &button0_WAIT_REPLY_SLEEP_FXN) != 0) {
+		System_abort("Error registering button callback function");
     }
+    serverTimeoutHandle = Clock_create((Clock_FuncPtr)serverTimeoutFxn, serverTimeoutValue, &serverTimeoutParams, NULL);
+	if(serverTimeoutHandle == NULL){
+		System_abort("Clock create failed");
+	}
+
+	Clock_start(serverTimeoutHandle);
+
 }
 
 /*STATE: Menu with donkey, second option (MOIKKAA) selected*/
@@ -477,10 +597,9 @@ Void actionButton_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId) {
     DisplayChanged = true;
 
     // Test if previous message send complete
-    if(GetTXFlag() == false){
-        Send6LoWPAN(IEEE80154_BROADCAST_ADDR, "Terve", 5);
-        StartReceive6LoWPAN();
-    }
+	Send6LoWPAN(IEEE80154_BROADCAST_ADDR, "Terve\n", 6);
+	StartReceive6LoWPAN();
+
     if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
 		System_abort("Error registering button callback function");
     }
@@ -536,8 +655,6 @@ Void commFxn(UArg arg0, UArg arg1) {
 	uint16_t senderAddr;
 	char buffer[80];
 	enum MessageType msgType;
-
-
     // Radio to receive mode
 	int32_t result = StartReceive6LoWPAN();
 	if(result != true) {
@@ -549,25 +666,31 @@ Void commFxn(UArg arg0, UArg arg1) {
     	// MESSAGE RECEIVED
     	if (GetRXFlag() == true) {
     		// RECEIVE MESSAGE, SAVE SENDER ADDRESS
-    		if(Receive6LoWPAN(&senderAddr, buffer, 80) != -1){
-				msgType = GetMessageType(buffer);
-				// Received greeting -> Send reply, update social
-				if(msgType == HELLO_REC){
-					sprintf(buffer, "Terve:%s", aasi.Name );
-					if(GetTXFlag() == false){
-						Send6LoWPAN(senderAddr, buffer, strlen(buffer));
-						StartReceive6LoWPAN();
-					}
+			Receive6LoWPAN(&senderAddr, buffer, 80);
+			System_printf(buffer);
+			System_flush();
+			msgType = GetMessageType(buffer);
+			// SKIP BAD MESSAGES;
+			if(msgType == UNKNOWN){
+				continue;
+			}
+			// Received greeting -> Send reply, update social
+			else if(msgType == HELLO_REC){
+				if(aasi.Active == true){
+					sprintf(buffer, "Terve:%s\n", aasi.Name );
+					Send6LoWPAN(senderAddr, buffer, strlen(buffer));
+					StartReceive6LoWPAN();
 					aasi.Social = aasi.Social + 1;
 				}
-				// Received reply -> Update social
-				else if(msgType == HELLO_ANS){
-					aasi.Social = aasi.Social + 1;
-				}
-				// Awaiting reply, receive error msg --> Move to error view
-				else if((msgType == ERROR_1 || msgType == ERROR_2 || msgType == ERROR_3 ||	msgType == ERROR_4 )
-					&& (AwaitingReplyNew == true) || AwaitingReplyPlay == true || AwaitingReplySleep == true)
-				{
+			}
+			// Received reply -> Update social
+			else if(msgType == HELLO_ANS){
+				aasi.Social = aasi.Social + 1;
+			}
+			// Awaiting reply, receive error msg --> Move to error view
+			else if((msgType == ERROR_1 || msgType == ERROR_2 || msgType == ERROR_3 ||	msgType == ERROR_4 ))
+			{
+				if(AwaitingReplyNew == true || AwaitingReplyPlay == true || AwaitingReplySleep == true){
 					if(serverTimeoutHandle != NULL){
 						Clock_stop(serverTimeoutHandle);
 						Clock_delete(&serverTimeoutHandle);
@@ -583,15 +706,75 @@ Void commFxn(UArg arg0, UArg arg1) {
 						System_abort("Error registering button callback function");
 					}
 				}
-				else if(msgType == ACK_OK)
-				{
-					continue;
+			}
+			else if(msgType == ACK_OK){
+				if(AwaitingReplyNew == true){
+					if(serverTimeoutHandle != NULL){
+						Clock_stop(serverTimeoutHandle);
+						Clock_delete(&serverTimeoutHandle);
+					}
+
+					AwaitingReplyNew = false;
+					DisplayState = MAIN_0;
+					DisplayChanged = true;
+
+					if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
+						System_abort("Error registering button callback function");
+					}
+					if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
+						System_abort("Error registering button callback function");
+					}
 				}
-				else{
-					continue;
+				else if(AwaitingReplySleep == true){
+					if(serverTimeoutHandle == NULL){
+						Clock_stop(serverTimeoutHandle);
+						Clock_delete(&serverTimeoutHandle);
+					}
+
+					aasi.Active = false;
+
+					AwaitingReplySleep = false;
+					DisplayState = MAIN_0;
+					DisplayChanged = true;
+
+					if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
+						System_abort("Error registering button callback function");
+					}
+					if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
+						System_abort("Error registering button callback function");
+					}
+
 				}
 			}
-        }
+
+			else if((msgType == ACK_PLAY))
+			{
+				AwaitingReplyPlay = false;
+				if(serverTimeoutHandle != NULL){
+					Clock_stop(serverTimeoutHandle);
+					Clock_delete(&serverTimeoutHandle);
+				}
+
+				struct Aasi newAasi = deserialize_aasi_play(buffer);
+				if(newAasi.Active == true){
+
+					aasi = newAasi;
+					DisplayState = MAIN_1;
+					DisplayChanged = true;
+
+					if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
+						System_abort("Error registering button callback function");
+					}
+					if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
+						System_abort("Error registering button callback function");
+					}
+				}
+			}
+			else{
+				continue;
+			}
+		}
+
     }
 }
 
@@ -781,10 +964,20 @@ Void taskFxn(UArg arg0, UArg arg1) {
 			else if(DisplayState == WAIT_REPLY_NEW){
 				Display_print0(hDisplay, 4, 4, "ODOTETAAN");
 				Display_print0(hDisplay, 5, 4, "VASTAUSTA");
+				Display_print0(hDisplay, 8, 1, "Paina nappia");
+				Display_print0(hDisplay, 9, 1, "peruuttaaksesi");
 			}
 			else if(DisplayState == WAIT_REPLY_PLAY){
-				Display_print0(hDisplay, 4, 4, "ODOTETAAN");
-				Display_print0(hDisplay, 5, 4, "VASTAUSTA");
+				Display_print0(hDisplay, 4, 4, "KUTSUTAAN");
+				Display_print0(hDisplay, 5, 4, "AASIA");
+				Display_print0(hDisplay, 8, 1, "Paina nappia");
+				Display_print0(hDisplay, 9, 1, "peruuttaaksesi");
+			}
+			else if(DisplayState == WAIT_REPLY_SLEEP){
+				Display_print0(hDisplay, 4, 4, "NUKUTETAAN");
+				Display_print0(hDisplay, 5, 4, "AASIA");
+				Display_print0(hDisplay, 8, 1, "Paina nappia");
+				Display_print0(hDisplay, 9, 1, "peruuttaaksesi");
 			}
 			else if(DisplayState == ERROR){
 				Display_print0(hDisplay, 1, 6, "VIRHE");
@@ -843,13 +1036,10 @@ Int main(void) {
     Board_initGeneral();
 
     /* Clocks */
-    serverTimeoutValue = 5000000 / Clock_tickPeriod;
+    serverTimeoutValue = 200000000 / Clock_tickPeriod;
     Clock_Params_init(&serverTimeoutParams);
     serverTimeoutParams.period = serverTimeoutValue;
     serverTimeoutParams.startFlag = FALSE;
-
-
-
 
 	/* Buttons */
 	hActionButton = PIN_open(&sPowerButton, cPowerButton);

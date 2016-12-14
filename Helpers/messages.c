@@ -10,11 +10,16 @@ const char ERROR_UNKNOWN_MSG[16] = "UNKNOWN MSG";
 const char ERROR_SERVER_TIMEOUT[16] = "SERVER TIMEOUT";
 
 enum MessageType GetMessageType(char * msg){
-	if(strcmp(msg, "Terve") == 0){
+	if(strcmp(msg, "Terve\n") == 0){
 		return HELLO_REC;
 	}
-	else if(strncmp(msg, "Ok\n",3)){
-		return ACK_OK;
+	else if(strncmp("OK",msg , 2) == 0){
+		if(strlen(msg) == 3){
+		  return ACK_OK;
+		}
+		else if(strlen(msg) > 3){
+		  return ACK_PLAY;
+		}
 	}
 	else if(strncmp(msg, "Terve:", 6) == 0){
 		return HELLO_ANS;

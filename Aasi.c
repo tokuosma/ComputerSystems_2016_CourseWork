@@ -34,6 +34,7 @@
 
 const char AASI_NAME[16] = "Duffy";
 
+/*Generate new donkey message and print to buffer*/
 void  serialize_aasi_new(struct Aasi aasi, char * buffer){
 
 	char temp [80];
@@ -50,6 +51,12 @@ void  serialize_aasi_new(struct Aasi aasi, char * buffer){
 	memcpy(buffer, temp, strlen(temp));
 }
 
+/*Generate play message and save to buffer*/
+void serialize_aasi_play(char * buffer){
+	sprintf(buffer, "Leiki:%s\n", AASI_NAME);
+}
+
+/*Generate sleep message and save to buffer*/
 void serialize_aasi_sleep(struct Aasi aasi, char * buffer){
     sprintf(buffer, "Nuku:%d,%d,%d,%d,%s\n",
             aasi.Move,
@@ -59,9 +66,13 @@ void serialize_aasi_sleep(struct Aasi aasi, char * buffer){
             aasi.Name);
 }
 
+/*Deserialize and return new donkey*/
 struct Aasi deserialize_aasi_play( char * msg_raw){
+
+
     const char sep1 = ':';
     const char sep2[2] = ",";
+    // Remove 'OK:'
     char * msg = (strchr(msg_raw, sep1)+1);
 
     char * token;
