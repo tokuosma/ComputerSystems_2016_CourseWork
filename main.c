@@ -217,23 +217,18 @@ Void actionButton_ERROR_FXN(PIN_Handle handle, PIN_Id pinId);
 //Void actionButton_WAIT_REPLY_PLAY_FXN(PIN_Handle handle, PIN_Id pinId);
 Void actionButton_IDLE_FXN(PIN_Handle handle, PIN_Id pinId);
 
+Void SetDisplayState(enum DisplayStates newDisplayState);
+
 
 Void serverTimeoutFxn(UArg arg0) {
+	// Cancel requests
 	AwaitingReplyNew = false;
 	AwaitingReplyPlay = false;
 	AwaitingReplySleep = false;
-	DisplayState = ERROR;
-	DisplayChanged = true;
 
 	memcpy(ERROR_MSG, "SERVER TIMEOUT", 15);
 
-    if (PIN_registerIntCb(hActionButton, &actionButton_ERROR_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_ERROR_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-
+	SetDisplayState(ERROR);
     Clock_delete(&serverTimeoutHandle);
 }
 
@@ -248,16 +243,7 @@ Void button0_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
 		Clock_delete(&serverTimeoutHandle);
 	}
 	AwaitingReplyNew = false;
-	DisplayState = MAIN_0;
-	DisplayChanged = true;
-
-
-    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
+	SetDisplayState(MAIN_0);
 
 }
 
@@ -270,16 +256,7 @@ Void button0_WAIT_REPLY_PLAY_FXN(PIN_Handle handle, PIN_Id pinId){
 		Clock_delete(&serverTimeoutHandle);
 	}
 	AwaitingReplyPlay = false;
-	DisplayState = MAIN_0;
-	DisplayChanged = true;
-
-    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-
+	SetDisplayState(MAIN_0);
 }
 
 /*STATE: Waiting for server reply after sending sleep message*/
@@ -291,222 +268,52 @@ Void button0_WAIT_REPLY_SLEEP_FXN(PIN_Handle handle, PIN_Id pinId){
 		Clock_delete(&serverTimeoutHandle);
 	}
 	AwaitingReplySleep = false;
-	DisplayState = MAIN_1;
-	DisplayChanged = true;
-
-    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-
+	SetDisplayState(MAIN_1);
 }
-//
-///*STATE: Waiting for server reply after sending new donkey*/
-///*DO: CANCEL REQUEST*/
-//Void actionButton_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
-//
-//	if(serverTimeoutHandle != NULL){
-//		Clock_stop(serverTimeoutHandle);
-//		Clock_delete(&serverTimeoutHandle);
-//	}
-//	AwaitingReplyNew = false;
-//	DisplayState = MAIN_0;
-//	DisplayChanged = true;
-//
-//    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-//		System_abort("Error registering button callback function");
-//    }
-//    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
-//		System_abort("Error registering button callback function");
-//    }
-//}
-//
-///*STATE: Waiting for server reply after sending play message*/
-///*DO: CANCEL REQUEST*/
-//Void actionButton_WAIT_REPLY_PLAY_FXN(PIN_Handle handle, PIN_Id pinId){
-//
-//	if(serverTimeoutHandle != NULL){
-//		Clock_stop(serverTimeoutHandle);
-//		Clock_delete(&serverTimeoutHandle);
-//	}
-//	AwaitingReplyPlay = false;
-//	DisplayState = MAIN_0;
-//	DisplayChanged = true;
-//
-//    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-//		System_abort("Error registering button callback function");
-//    }
-//    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
-//		System_abort("Error registering button callback function");
-//    }
-//}
-//
-///*STATE: Waiting for server reply after sending sleep command*/
-///*DO: CANCEL REQUEST*/
-//Void actionButton_WAIT_REPLY_SLEEP_FXN(PIN_Handle handle, PIN_Id pinId){
-//
-//	if(serverTimeoutHandle != NULL){
-//		Clock_stop(serverTimeoutHandle);
-//		Clock_delete(&serverTimeoutHandle);
-//	}
-//	AwaitingReplySleep = false;
-//	DisplayState = MAIN_1;
-//	DisplayChanged = true;
-//
-//    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-//		System_abort("Error registering button callback function");
-//    }
-//    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
-//		System_abort("Error registering button callback function");
-//    }
-//}
-
 
 /*STATE: Main view without donkey*/
 /*DO: Open menu*/
-Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId) {
-
-    DisplayState = MENU_0_0;
-    DisplayChanged = true;
-
-    if (PIN_registerIntCb(hActionButton, &actionButton_MENU_0_0_FXN) != 0) {
-    			System_abort("Error registering button callback function");
-    }
-
-    if (PIN_registerIntCb(hButton0, &button0_MENU_0_0_FXN) != 0) {
-        			System_abort("Error registering button callback function");
-    }
-
-}
+Void button0_MAIN_0_FXN(PIN_Handle handle, PIN_Id pinId) {SetDisplayState(MENU_0_0);}
 
 /*STATE: Main view with donkey*/
 /*DO: Open menu*/
-Void button0_MAIN_1_FXN(PIN_Handle handle, PIN_Id pinId) {
-
-    DisplayState = MENU_1_0;
-    DisplayChanged = true;
-
-    if (PIN_registerIntCb(hActionButton, &actionButton_MENU_1_0_FXN) != 0) {
-        			System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_MENU_1_0_FXN) != 0) {
-    			System_abort("Error registering button callback function");
-    }
-
-}
+Void button0_MAIN_1_FXN(PIN_Handle handle, PIN_Id pinId) {SetDisplayState(MENU_1_0);}
 
 /*STATE: Menu without donkey, first option (UUSI) selected*/
 /*DO: Move to second menu option*/
-Void button0_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MENU_0_1;
-    DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_MENU_0_1_FXN) != 0) {
-        			System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_MENU_0_1_FXN) != 0) {
-    			System_abort("Error registering button callback function");
-    }
-
-}
+Void button0_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {SetDisplayState(MENU_0_1);}
 
 /*STATE: Menu without donkey, second option (LEIKI) selected*/
 /*DO: Move to third menu option */
-Void button0_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MENU_0_2;
-    DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_MENU_0_2_FXN) != 0) {
-            			System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_MENU_0_2_FXN) != 0) {
-    			System_abort("Error registering button callback function");
-    }
+Void button0_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {SetDisplayState(MENU_0_2);}
 
-}
 /*STATE: Menu without donkey, third option (TAKAISIN) selected*/
 /*DO: MOVE TO FIRST MENU OPTION*/
-Void button0_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MENU_0_0;
-    DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_MENU_0_0_FXN) != 0) {
-            			System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_MENU_0_0_FXN) != 0) {
-    			System_abort("Error registering button callback function");
-    }
-
-}
+Void button0_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {SetDisplayState(MENU_0_0);}
 
 /*STATE: Menu with donkey, first option (NUKU) selected*/
 /*DO: MOVE TO SECOND MENU OPTION*/
-Void button0_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MENU_1_1;
-    DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_MENU_1_1_FXN) != 0) {
-		System_abort("Error registering button callback function");
-	}
-    if (PIN_registerIntCb(hButton0, &button0_MENU_1_1_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-}
+Void button0_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {SetDisplayState(MENU_1_1);}
 
 /*STATE: Menu with donkey, second option (MOIKKAA) selected*/
 /*DO: MOVE TO THIRD MENU OPTION*/
-Void button0_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MENU_1_2;
-    DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_MENU_1_2_FXN) != 0) {
-		System_abort("Error registering button callback function");
-	}
-    if (PIN_registerIntCb(hButton0, &button0_MENU_1_2_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-}
+Void button0_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId) {SetDisplayState(MENU_1_2);}
 
 /*STATE: Menu with donkey, third option (TAKAISIN) selected*/
 /*DO: MOVE TO FIRST MENU OPTION*/
-Void button0_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MENU_1_0;
-    DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_MENU_1_0_FXN) != 0) {
-		System_abort("Error registering button callback function");
-	}
-    if (PIN_registerIntCb(hButton0, &button0_MENU_1_0_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-}
+Void button0_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {SetDisplayState(MENU_1_0);}
 
 /*STATE: Communication error*/
 /*DO: MOVE BACK TO MAIN VIEW*/
 Void button0_ERROR_FXN(PIN_Handle handle, PIN_Id pinId) {
-
-	if(aasi.Active == true){
-		DisplayState = MAIN_1;
-		DisplayChanged = true;
-		if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-					System_abort("Error registering button callback function");
-		}
-		if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
-							System_abort("Error registering button callback function");
-		}
-	}
-	else{
-	    DisplayState = MAIN_0;
-	    DisplayChanged = true;
-	    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-	    			System_abort("Error registering button callback function");
-	    }
-	    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
-	                			System_abort("Error registering button callback function");
-	    }
-	}
+	if(aasi.Active == true){SetDisplayState(MAIN_1);}
+	else{SetDisplayState(MAIN_0);}
 }
 
 /*STATE: In the main view*/
 /*DO: Handle power button */
 Void actionButton_MAIN_FXN(PIN_Handle handle, PIN_Id pinId) {
-
+//TODO: Re-enable power button
 //    Display_clear(hDisplay);
 //    Display_close(hDisplay);
 //    Task_sleep(100000 / Clock_tickPeriod);
@@ -516,8 +323,6 @@ Void actionButton_MAIN_FXN(PIN_Handle handle, PIN_Id pinId) {
 //    PINCC26XX_setWakeup(cPowerWake);
 //	Power_shutdown(NULL,0);
 }
-
-
 
 /*STATE: Menu without donkey, first option (UUSI) selected*/
 /*DO: SEND NEW DONKEY TO SERVER*/
@@ -531,14 +336,7 @@ Void actionButton_MENU_0_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 	AwaitingReplyNew = true;
 	receiveStatus = StartReceive6LoWPAN();
 
-	DisplayState = WAIT_REPLY_NEW;
-    DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_IDLE_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_WAIT_REPLY_NEW_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
+	SetDisplayState(WAIT_REPLY_NEW);
 
     serverTimeoutHandle = Clock_create((Clock_FuncPtr) serverTimeoutFxn, serverTimeoutValue, &serverTimeoutParams, NULL);
     if (serverTimeoutHandle == NULL) {
@@ -559,15 +357,7 @@ Void actionButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
 	AwaitingReplyPlay = true;
 	receiveStatus = StartReceive6LoWPAN();
 
-	DisplayState = WAIT_REPLY_PLAY;
-    DisplayChanged = true;
-
-    if (PIN_registerIntCb(hActionButton, &actionButton_IDLE_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_WAIT_REPLY_PLAY_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
+	SetDisplayState(WAIT_REPLY_PLAY);
 
 	serverTimeoutHandle = Clock_create((Clock_FuncPtr)serverTimeoutFxn, serverTimeoutValue, &serverTimeoutParams, NULL);
 	if(serverTimeoutHandle == NULL){
@@ -578,21 +368,11 @@ Void actionButton_MENU_0_1_FXN(PIN_Handle handle, PIN_Id pinId) {
 
 /*STATE: Menu without donkey, third option (TAKAISIN) selected*/
 /*DO: MOVE BACK TO MAIN VIEW*/
-Void actionButton_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MAIN_0;
-    DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-}
+Void actionButton_MENU_0_2_FXN(PIN_Handle handle, PIN_Id pinId) {SetDisplayState(MAIN_0);}
 
 /*STATE: Menu with donkey, first option (NUKU) selected*/
 /*DO: PUT DONKEY TO SLEEP, SEND STATS TO SERVER*/
 Void actionButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
-
 
 	char payload[80] = "";
 	serialize_aasi_sleep(aasi, payload);
@@ -601,88 +381,38 @@ Void actionButton_MENU_1_0_FXN(PIN_Handle handle, PIN_Id pinId) {
 	AwaitingReplySleep = true;
 	receiveStatus = StartReceive6LoWPAN();
 
+	SetDisplayState(WAIT_REPLY_SLEEP);
 
-	DisplayState = WAIT_REPLY_SLEEP;
-    DisplayChanged = true;
-
-
-    if (PIN_registerIntCb(hActionButton, &actionButton_IDLE_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_WAIT_REPLY_SLEEP_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-    serverTimeoutHandle = Clock_create((Clock_FuncPtr)serverTimeoutFxn, serverTimeoutValue, &serverTimeoutParams, NULL);
+	serverTimeoutHandle = Clock_create((Clock_FuncPtr)serverTimeoutFxn, serverTimeoutValue, &serverTimeoutParams, NULL);
 	if(serverTimeoutHandle == NULL){
 		System_abort("Clock create failed");
 	}
-
 	Clock_start(serverTimeoutHandle);
-
 }
 
 /*STATE: Menu with donkey, second option (MOIKKAA) selected*/
 /*DO: SEND BROADCAST MESSAGE*/
 Void actionButton_MENU_1_1_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MAIN_1;
-    DisplayChanged = true;
 
     // Test if previous message send complete
 	Send6LoWPAN(IEEE80154_BROADCAST_ADDR, "Terve\n", 6);
 	StartReceive6LoWPAN();
 
-    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-		System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
-    	System_abort("Error registering button callback function");
-    }
+	SetDisplayState(MAIN_1);
 }
 
 /*STATE: Menu with donkey, third option (TAKAISIN) selected*/
 /*DO: MOVE BACK TO MAIN VIEW*/
-Void actionButton_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {
-    DisplayState = MAIN_1;
-    DisplayChanged = true;
-    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-    			System_abort("Error registering button callback function");
-    }
-    if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
-            			System_abort("Error registering button callback function");
-    }
-}
+Void actionButton_MENU_1_2_FXN(PIN_Handle handle, PIN_Id pinId) {SetDisplayState(MAIN_1);}
 
 /*STATE: Communication error*/
-/*DO: MOVE BACK TO MAIN VIEW*/
-Void actionButton_ERROR_FXN(PIN_Handle handle, PIN_Id pinId) {
-
-	if(aasi.Active == true){
-		DisplayState = MAIN_1;
-		DisplayChanged = true;
-		if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-					System_abort("Error registering button callback function");
-		}
-		if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
-							System_abort("Error registering button callback function");
-		}
-	}
-	else{
-	    DisplayState = MAIN_0;
-	    DisplayChanged = true;
-	    if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-	    			System_abort("Error registering button callback function");
-	    }
-	    if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
-	                			System_abort("Error registering button callback function");
-	    }
-	}
-}
-
-Void actionButton_IDLE_FXN(PIN_Handle handle, PIN_Id pinId){
-
-}
+/*DO: NOTHING*/
+Void actionButton_ERROR_FXN(PIN_Handle handle, PIN_Id pinId) {}
 
 
+/*STATE: Waiting for reply*/
+/*DO: NOTHING*/
+Void actionButton_IDLE_FXN(PIN_Handle handle, PIN_Id pinId){}
 
 /* Communication Task */
 Void commFxn(UArg arg0, UArg arg1) {
@@ -1216,3 +946,132 @@ Int main(void) {
     return (0);
 }
 
+// Set new display and change button interrupt callbacks
+Void SetDisplayState(enum DisplayStates newDisplayState){
+
+	DisplayChanged = true;
+	switch(newDisplayState){
+	case MAIN_0:
+		DisplayState = MAIN_0;
+		if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+
+	case MAIN_1:
+		DisplayState = MAIN_1;
+		if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+
+	case MENU_0_0:
+		DisplayState = MENU_0_0;
+		if (PIN_registerIntCb(hActionButton, &actionButton_MENU_0_0_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_MENU_0_0_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+	case MENU_0_1:
+		DisplayState = MENU_0_1;
+		if (PIN_registerIntCb(hActionButton, &actionButton_MENU_0_1_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_MENU_0_1_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+
+	case MENU_0_2:
+		DisplayState = MENU_0_2;
+		if (PIN_registerIntCb(hActionButton, &actionButton_MENU_0_2_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_MENU_0_2_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+
+	case MENU_1_0:
+		DisplayState = MENU_1_0;
+		if (PIN_registerIntCb(hActionButton, &actionButton_MENU_1_0_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_MENU_1_0_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+	case MENU_1_1:
+		DisplayState = MENU_1_1;
+		if (PIN_registerIntCb(hActionButton, &actionButton_MENU_1_1_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_MENU_1_1_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+
+	case MENU_1_2:
+		DisplayState = MENU_1_2;
+		if (PIN_registerIntCb(hActionButton, &actionButton_MENU_1_2_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_MENU_1_2_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+
+	case WAIT_REPLY_NEW:
+		DisplayState = WAIT_REPLY_NEW;
+		if (PIN_registerIntCb(hActionButton, &actionButton_IDLE_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_WAIT_REPLY_NEW_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+	case WAIT_REPLY_PLAY:
+		DisplayState = WAIT_REPLY_PLAY;
+		if (PIN_registerIntCb(hActionButton, &actionButton_IDLE_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_WAIT_REPLY_PLAY_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+	case WAIT_REPLY_SLEEP:
+		DisplayState = WAIT_REPLY_SLEEP;
+		if (PIN_registerIntCb(hActionButton, &actionButton_IDLE_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_WAIT_REPLY_SLEEP_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+
+	case ERROR:
+		DisplayState = ERROR;
+		if (PIN_registerIntCb(hActionButton, &actionButton_IDLE_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		if (PIN_registerIntCb(hButton0, &button0_ERROR_FXN) != 0) {
+			System_abort("Error registering button callback function");
+		}
+		break;
+
+	case SUCCESS:
+		//NOT IMPLEMENTED
+		break;
+	default:
+		break;
+	}
+
+}
