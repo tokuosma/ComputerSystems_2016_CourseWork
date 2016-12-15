@@ -1019,38 +1019,42 @@ Void sensorsFxn(UArg arg0, UArg arg1) {
 	int move_count = 0;
 
      //Create I2C for usage
-        I2C_Params_init(&i2cParams);
-        i2cParams.bitRate = I2C_400kHz;
+     I2C_Params_init(&i2cParams);
+     i2cParams.bitRate = I2C_400kHz;
 
-        I2C_Params_init(&i2cMPUParams);
-        i2cMPUParams.bitRate = I2C_400kHz;
-        i2cMPUParams.custom = (uintptr_t)&i2cMPUCfg;
+     //Create second I2C for accelerometer
+     I2C_Params_init(&i2cMPUParams);
+     i2cMPUParams.bitRate = I2C_400kHz;
+     i2cMPUParams.custom = (uintptr_t)&i2cMPUCfg;
 
-        i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
-        if (i2cMPU == NULL) {
-            System_abort("Error Initializing I2CMPU\n");
-        }
-        PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_ON);
-        Task_sleep(100000 / Clock_tickPeriod);
-        System_printf("MPU9250: Power ON\n");
-        System_flush();
+     //Open I2CMPU, setup MPU9250 and close I2C
+     i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
+     if (i2cMPU == NULL) {
+         System_abort("Error Initializing I2CMPU\n");
+     }
+     PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_ON);
+     Task_sleep(100000 / Clock_tickPeriod);
+     System_printf("MPU9250: Power ON\n");
+     System_flush();
 
-        mpu9250_setup(&i2cMPU);
-        I2C_close(i2cMPU);
+     mpu9250_setup(&i2cMPU);
+     I2C_close(i2cMPU);
 
-        i2c = I2C_open(Board_I2C0, &i2cParams);
-        if (i2c == NULL) {
-            System_abort("Error Initializing I2C\n");
-        }
-        else {
-            System_printf("I2C Initialized!\n");
-        }
-    tmp007_setup(&i2c);
-    opt3001_setup(&i2c);
-	bmp280_setup(&i2c);
+     //Open I2C, setup other sensors, then close I2C
+     i2c = I2C_open(Board_I2C0, &i2cParams);
+     if (i2c == NULL) {
+         System_abort("Error Initializing I2C\n");
+     }
+     else {
+         System_printf("I2C Initialized!\n");
+     }
+     tmp007_setup(&i2c);
+     opt3001_setup(&i2c);
+     bmp280_setup(&i2c);
+     I2C_close(i2c);
 
-	I2C_close(i2c);
 
+    //Infinite sensor reading loop
 	while (1){
 		if (sensor_count == 9) {
 			sensor_count = 0;
@@ -1063,7 +1067,7 @@ Void sensorsFxn(UArg arg0, UArg arg1) {
 			}
 
 			bmp280_get_data(&i2c, &pressure, &temp_p);
-			if (pressure > 1017 && pressure < 1018) {
+			if (pressure > 1095 && pressure < 1100) {
 				aasi.Air = aasi.Air + 1;
 				DisplayChanged = true;
 			}
@@ -1075,6 +1079,7 @@ Void sensorsFxn(UArg arg0, UArg arg1) {
 			System_abort("Error Initializing I2CMPU\n");
 		}
 		mpu9250_get_data(&i2cMPU, &ax, &ay, &az, &gx, &gy, &gz);
+		//Take RMS of acceleration data
 		accel = sqrt(pow(ax,2) + pow(ay,2) + pow(az,2));
 		if (accel > 1.5) {
 			move_count = move_count + 1;
