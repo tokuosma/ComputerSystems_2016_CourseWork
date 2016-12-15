@@ -117,7 +117,7 @@ const double LIGHT_LIMIT = 0;
 const double PRES_LIMIT = 0;
 
 /* Task */
-#define STACKSIZE 2500
+#define STACKSIZE 3500
 Char taskStack[STACKSIZE];
 Char taskCommStack[STACKSIZE];
 Char taskSensorsStack[STACKSIZE];
@@ -830,49 +830,12 @@ Void commFxn(UArg arg0, UArg arg1) {
 				}
 
 			}
-			// EMPTY BUFFER
-			memcpy(buffer, empty, 80);
+			memcpy(buffer, empty, 80); // Clear buffer
 		} // ENDIF
     } //END WHILE
 }
 
 Void taskFxn(UArg arg0, UArg arg1) {
-
-	/*I2C_Handle      i2c;
-	I2C_Params      i2cParams;
-
-    // Create I2C for usage
-        I2C_Params_init(&i2cParams);
-        i2cParams.bitRate = I2C_400kHz;
-        i2c = I2C_open(Board_I2C0, &i2cParams);
-        if (i2c == NULL) {
-            System_abort("Error Initializing I2C 1\n");
-        }
-        else {
-            System_printf("I2C Initialized!\n");
-        }
-
-    float temperature;
-    char temp_text[20];
-    tmp007_setup(&i2c);
-    temperature = tmp007_get_data(&i2c);
-    sprintf(temp_text, "%.2f °C", temperature);
-    System_printf("Temperature: %s\n", temp_text);
-
-    float light;
-	char light_text[20];
-    opt3001_setup(&i2c);
-    light = opt3001_get_data(&i2c);
-    sprintf(light_text, "%.2f Lux", light);
-    System_printf("Light: %s\n", light_text);
-
-    double pressure, temp_p;
-	char pres_text[20];
-	bmp280_setup(&i2c);
-	bmp280_get_data(&i2c, &pressure, &temp_p);
-	sprintf(pres_text, "%.2f hPa", pressure);
-	System_printf("Pressure: %s\n", pres_text);
-	System_flush(); */
 
 	// Initialize display variables
 
@@ -1062,9 +1025,7 @@ Void taskFxn(UArg arg0, UArg arg1) {
 			}
 			DisplayChanged = false;
     	}
-
     	Task_sleep(1000000 / Clock_tickPeriod);
-
     }
 }
 
@@ -1076,65 +1037,87 @@ Void sensorsFxn(UArg arg0, UArg arg1) {
 	I2C_Params i2cMPUParams;
 
 	double accel;
-	char accel_text[20];
 	float ax, ay, az, gx, gy, gz;
-    float temperature;
-    char temp_text[20];
-    float light;
-	char light_text[20];
-    double pressure;
+    float temperature = 0;
+    float light = 0;
+    double pressure = 0;
+    int sensor_count = 9;
 	double temp_p;
-	char pres_text[20];
+	int move_count = 0;
 
      //Create I2C for usage
-        I2C_Params_init(&i2cParams);
-        i2cParams.bitRate = I2C_400kHz;
+    I2C_Params_init(&i2cParams);
+    i2cParams.bitRate = I2C_400kHz;
 
-        I2C_Params_init(&i2cMPUParams);
-        i2cMPUParams.bitRate = I2C_400kHz;
-        i2cMPUParams.custom = (uintptr_t)&i2cMPUCfg;
+	//Create second I2C for accelerometer
+	I2C_Params_init(&i2cMPUParams);
+	i2cMPUParams.bitRate = I2C_400kHz;
+	i2cMPUParams.custom = (uintptr_t)&i2cMPUCfg;
 
-        i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
-        if (i2cMPU == NULL) {
-            System_abort("Error Initializing I2CMPU\n");
-        }
-        PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_ON);
-        Task_sleep(100000 / Clock_tickPeriod);
-        System_printf("MPU9250: Power ON\n");
-        System_flush();
+	//Open I2CMPU, setup MPU9250 and close I2C
+	i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
+	if (i2cMPU == NULL) {
+	 System_abort("Error Initializing I2CMPU\n");
+	}
+	PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_ON);
+	Task_sleep(100000 / Clock_tickPeriod);
+	System_printf("MPU9250: Power ON\n");
+	System_flush();
 
-        mpu9250_setup(&i2cMPU);
-        I2C_close(i2cMPU);
+	mpu9250_setup(&i2cMPU);
+	I2C_close(i2cMPU);
 
-        i2c = I2C_open(Board_I2C0, &i2cParams);
-        if (i2c == NULL) {
-            System_abort("Error Initializing I2C\n");
-        }
-        else {
-            System_printf("I2C Initialized!\n");
-        }
-    tmp007_setup(&i2c);
-    opt3001_setup(&i2c);
+	//Open I2C, setup other sensors, then close I2C
+	i2c = I2C_open(Board_I2C0, &i2cParams);
+	if (i2c == NULL) {
+	 System_abort("Error Initializing I2C\n");
+	}
+	else {
+	 System_printf("I2C Initialized!\n");
+	}
+	tmp007_setup(&i2c);
+	opt3001_setup(&i2c);
 	bmp280_setup(&i2c);
-
 	I2C_close(i2c);
 
+
+    //Infinite sensor reading loop
 	while (1){
-		i2c = I2C_open(Board_I2C, &i2cParams);
-		temperature = tmp007_get_data(&i2c);
-		light = opt3001_get_data(&i2c);
+		if (sensor_count == 9) {
+			sensor_count = 0;
+			i2c = I2C_open(Board_I2C, &i2cParams);
+			temperature = tmp007_get_data(&i2c);
+			light = opt3001_get_data(&i2c);
+			if (light > 200 && temperature >= 15) {
+				aasi.Sun = aasi.Sun + 1;
+				DisplayChanged = true;
+			}
 
-		bmp280_get_data(&i2c, &pressure, &temp_p);
-		I2C_close(i2c);
-
+			bmp280_get_data(&i2c, &pressure, &temp_p);
+			if (pressure > 1095 && pressure < 1100) {
+				aasi.Air = aasi.Air + 1;
+				DisplayChanged = true;
+			}
+			I2C_close(i2c);
+		}
+		sensor_count = sensor_count + 1;
 		i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
 		if (i2cMPU == NULL) {
 			System_abort("Error Initializing I2CMPU\n");
 		}
 		mpu9250_get_data(&i2cMPU, &ax, &ay, &az, &gx, &gy, &gz);
+		//Take RMS of acceleration data
 		accel = sqrt(pow(ax,2) + pow(ay,2) + pow(az,2));
+		if (accel > 1.5) {
+			move_count = move_count + 1;
+			if (move_count == 10) {
+				aasi.Move = aasi.Move + 1;
+				move_count = 0;
+				DisplayChanged = true;
+			}
+			}
 		I2C_close(i2cMPU);
-		Task_sleep(1000000 / Clock_tickPeriod);
+		Task_sleep(100000 / Clock_tickPeriod);
 	}
 	PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_OFF);
 }
@@ -1223,7 +1206,6 @@ Int main(void) {
     if (taskSensors == NULL) {
        	System_abort("Sensors task create failed!");
     }
-
 
     System_printf("Hello world!\n");
     System_flush();

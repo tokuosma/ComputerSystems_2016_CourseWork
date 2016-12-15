@@ -32,8 +32,6 @@
 //    return 0;
 //}
 
-const char AASI_NAME[16] = "Duffy";
-
 /*Generate new donkey message and print to buffer*/
 void  serialize_aasi_new(struct Aasi aasi, char * buffer){
 
@@ -52,8 +50,8 @@ void  serialize_aasi_new(struct Aasi aasi, char * buffer){
 }
 
 /*Generate play message and save to buffer*/
-void serialize_aasi_play(char * buffer){
-	sprintf(buffer, "Leiki:%s\n", AASI_NAME);
+void serialize_aasi_play(char * buffer, char * name){
+	sprintf(buffer, "Leiki:%s\n", name);
 }
 
 /*Generate sleep message and save to buffer*/
