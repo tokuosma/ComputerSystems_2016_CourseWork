@@ -19,7 +19,7 @@ struct Aasi {
 
 void serialize_aasi_new(struct Aasi aasi, char * buffer);
 void serialize_aasi_sleep(struct Aasi aasi, char * buffer);
-void serialize_aasi_play(char * buffer);
+void serialize_aasi_play(char * buffer, char * name);
 
 struct Aasi deserialize_aasi_play(char * msg_raw);
 

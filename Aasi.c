@@ -1,39 +1,5 @@
 #include "Aasi.h"
 
-//int main(){
-//    struct Aasi aasi = {
-//        .Name = "Duffy",
-//        .Move = 0,
-//        .Sun = 0,
-//        .Air = 0,
-//        .Social = 0,
-//        .Image[0] = 0x81,
-//        .Image[1] = 0x42,
-//        .Image[2] = 0x7E,
-//        .Image[3] = 0xA5,
-//        .Image[4] = 0x81,
-//        .Image[5] = 0x5A,
-//        .Image[6] = 0x24,
-//        .Image[7] = 0x18,
-//        .Active = true
-//    };
-//
-//    char buff[200];
-//    serialize_aasi_new(aasi, buff);
-//    printf("%s",buff);
-//    serialize_aasi_sleep(aasi,buff);
-//    printf("%s",buff);
-//    char msg[] = "OK:11,36,59,66,66,66,59,0,1,2,3,4,Ekamax\n";
-//    aasi = deserialize_aasi_play(msg);
-//    serialize_aasi_new(aasi, buff);
-//    printf("%s",buff);
-//    serialize_aasi_sleep(aasi,buff);
-//    printf("%s",buff);
-//    return 0;
-//}
-
-const char AASI_NAME[16] = "Duffy";
-
 /*Generate new donkey message and print to buffer*/
 void  serialize_aasi_new(struct Aasi aasi, char * buffer){
 
@@ -52,8 +18,8 @@ void  serialize_aasi_new(struct Aasi aasi, char * buffer){
 }
 
 /*Generate play message and save to buffer*/
-void serialize_aasi_play(char * buffer){
-	sprintf(buffer, "Leiki:%s\n", AASI_NAME);
+void serialize_aasi_play(char * buffer, char * name){
+	sprintf(buffer, "Leiki:%s\n", name);
 }
 
 /*Generate sleep message and save to buffer*/
