@@ -1,3 +1,8 @@
+/*
+*Used Code:
+* mpu_bmp_example.c
+* Author: Teemu Leppanen / UBIComp / University of Oulu
+*/
 
 #include <stdio.h>
 #include <string.h>
@@ -725,6 +730,7 @@ Void displayFxn(UArg arg0, UArg arg1) {
 
 Void sensorsFxn(UArg arg0, UArg arg1) {
 
+	//Handles and parameters for I2C
 	I2C_Handle i2c;
 	I2C_Params i2cParams;
 	I2C_Handle i2cMPU;
@@ -777,9 +783,9 @@ Void sensorsFxn(UArg arg0, UArg arg1) {
 
     //Infinite sensor reading loop
 	while (1){
-
-		if(aasi.Active == true){
-			// Read sun and air only once every second
+		//Check if donkey is in the machine
+		if (aasi.Active == true) {
+			//Sensors read data on every 10th cycle = once per second
 			if (sensor_count == 9) {
 				sensor_count = 0;
 				i2c = I2C_open(Board_I2C, &i2cParams);
@@ -787,13 +793,13 @@ Void sensorsFxn(UArg arg0, UArg arg1) {
 				light = opt3001_get_data(&i2c);
 				if (light > 200 && temperature >= 15) {
 					aasi.Sun = aasi.Sun + 1;
-					SensorsRefreshDisplay();
+					DisplayChanged = true;
 				}
 
 				bmp280_get_data(&i2c, &pressure, &temp_p);
-				if (pressure > 1095 && pressure < 1100) {
+				if (pressure > 1020,9 && pressure < 1021,9) {
 					aasi.Air = aasi.Air + 1;
-					SensorsRefreshDisplay();
+					DisplayChanged = true;
 				}
 				I2C_close(i2c);
 			}
@@ -802,22 +808,25 @@ Void sensorsFxn(UArg arg0, UArg arg1) {
 			if (i2cMPU == NULL) {
 				System_abort("Error Initializing I2CMPU\n");
 			}
-			// Read move every time
 			mpu9250_get_data(&i2cMPU, &ax, &ay, &az, &gx, &gy, &gz);
 			//Take RMS of acceleration data
 			accel = sqrt(pow(ax,2) + pow(ay,2) + pow(az,2));
+			//Acceleration sensor reads data on every cycle = once every 100ms,
+			//Increases aasi.Move every 10th cycle
 			if (accel > 1.5) {
 				move_count = move_count + 1;
 				if (move_count == 10) {
 					aasi.Move = aasi.Move + 1;
 					move_count = 0;
-					SensorsRefreshDisplay();
+					DisplayChanged = true;
 				}
-			}
+				}
 			I2C_close(i2cMPU);
 		}
+		//Delay on sensors task is 100ms
 		Task_sleep(100000 / Clock_tickPeriod);
 	}
+	//Outside loop, program shouldn't get here anyway
 	PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_OFF);
 }
 
@@ -871,7 +880,7 @@ Int main(void) {
       	System_abort("Pin open failed!");
     }
 
-    /* Task */
+    /* Display Task */
     Task_Params_init(&taskParams);
     taskParams.stackSize = STACKSIZE;
     taskParams.stack = &taskStack;
@@ -895,7 +904,7 @@ Int main(void) {
     	System_abort("Comm task create failed!");
     }
 
-    //Sensors task
+    //Sensors Task
     Task_Params_init(&taskSensorsParams);
     taskSensorsParams.stackSize = STACKSIZE;
     taskSensorsParams.stack = &taskSensorsStack;
