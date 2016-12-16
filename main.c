@@ -35,6 +35,7 @@
 #include "sensors/mpu9250.h"
 #include "Aasi.h"
 
+
 // *******************************
 //
 // MPU GLOBAL VARIABLES
@@ -69,7 +70,7 @@ struct Aasi aasi = {
 	.Image[5] = 0x5A,
 	.Image[6] = 0x24,
 	.Image[7] = 0x18,
-	.Active = true
+	.Active = false
 };
 
 const char AASI_NAME[16] = "Duffy";
@@ -146,9 +147,56 @@ tImage aasiImage ;
 // Storage for the magnified aasi image
 uint8_t aasiImageMag[128] = {0};
 // Global display state
-enum DisplayStates DisplayState = MAIN_1;
+enum DisplayStates DisplayState = MAIN_0;
 bool DisplayChanged = true;
 
+// Icons
+const tImage moveImage = {
+		.BPP = IMAGE_FMT_1BPP_UNCOMP,
+		.NumColors = 2,
+		.XSize = 1,
+		.YSize = 8,
+		.pPalette = imgPalette,
+		.pPixel = IconMove
+};
+
+const tImage sunImage = {
+		.BPP = IMAGE_FMT_1BPP_UNCOMP,
+		.NumColors = 2,
+		.XSize = 1,
+		.YSize = 8,
+		.pPalette = imgPalette,
+		.pPixel = IconSun
+};
+
+const tImage airImage = {
+		.BPP = IMAGE_FMT_1BPP_UNCOMP,
+		.NumColors = 2,
+		.XSize = 1,
+		.YSize = 8,
+		.pPalette = imgPalette,
+		.pPixel = IconAir
+};
+
+const tImage socialImage = {
+		.BPP = IMAGE_FMT_1BPP_UNCOMP,
+		.NumColors = 2,
+		.XSize = 1,
+		.YSize = 8,
+		.pPalette = imgPalette,
+		.pPixel = IconSocial
+};
+
+const tImage arrowImage = {
+		.BPP = IMAGE_FMT_1BPP_UNCOMP,
+		.NumColors = 2,
+		.XSize = 1,
+		.YSize = 8,
+		.pPalette = imgPalette,
+		.pPixel = IconArrow
+};
+
+/* Communication */
 // Communication error message
 char ERROR_MSG[16] = "";
 uint8_t receiveStatus;
@@ -217,17 +265,16 @@ Void actionButton_ERROR_FXN(PIN_Handle handle, PIN_Id pinId);
 //Void actionButton_WAIT_REPLY_PLAY_FXN(PIN_Handle handle, PIN_Id pinId);
 Void actionButton_IDLE_FXN(PIN_Handle handle, PIN_Id pinId);
 
+// Helpers
+Void SensorsRefreshDisplay();
+Void CancelRequests();
 Void SetDisplayState(enum DisplayStates newDisplayState);
 
 
 Void serverTimeoutFxn(UArg arg0) {
 	// Cancel requests
-	AwaitingReplyNew = false;
-	AwaitingReplyPlay = false;
-	AwaitingReplySleep = false;
-
+	CancelRequests();
 	memcpy(ERROR_MSG, "SERVER TIMEOUT", 15);
-
 	SetDisplayState(ERROR);
     Clock_delete(&serverTimeoutHandle);
 }
@@ -242,7 +289,7 @@ Void button0_WAIT_REPLY_NEW_FXN(PIN_Handle handle, PIN_Id pinId){
 		Clock_stop(serverTimeoutHandle);
 		Clock_delete(&serverTimeoutHandle);
 	}
-	AwaitingReplyNew = false;
+	CancelRequests();
 	SetDisplayState(MAIN_0);
 
 }
@@ -255,7 +302,7 @@ Void button0_WAIT_REPLY_PLAY_FXN(PIN_Handle handle, PIN_Id pinId){
 		Clock_stop(serverTimeoutHandle);
 		Clock_delete(&serverTimeoutHandle);
 	}
-	AwaitingReplyPlay = false;
+	CancelRequests();
 	SetDisplayState(MAIN_0);
 }
 
@@ -267,7 +314,7 @@ Void button0_WAIT_REPLY_SLEEP_FXN(PIN_Handle handle, PIN_Id pinId){
 		Clock_stop(serverTimeoutHandle);
 		Clock_delete(&serverTimeoutHandle);
 	}
-	AwaitingReplySleep = false;
+	CancelRequests();
 	SetDisplayState(MAIN_1);
 }
 
@@ -313,15 +360,14 @@ Void button0_ERROR_FXN(PIN_Handle handle, PIN_Id pinId) {
 /*STATE: In the main view*/
 /*DO: Handle power button */
 Void actionButton_MAIN_FXN(PIN_Handle handle, PIN_Id pinId) {
-//TODO: Re-enable power button
-//    Display_clear(hDisplay);
-//    Display_close(hDisplay);
-//    Task_sleep(100000 / Clock_tickPeriod);
-//
-//	PIN_close(hActionButton);
-//
-//    PINCC26XX_setWakeup(cPowerWake);
-//	Power_shutdown(NULL,0);
+    Display_clear(hDisplay);
+    Display_close(hDisplay);
+    Task_sleep(100000 / Clock_tickPeriod);
+
+	PIN_close(hActionButton);
+
+    PINCC26XX_setWakeup(cPowerWake);
+	Power_shutdown(NULL,0);
 }
 
 /*STATE: Menu without donkey, first option (UUSI) selected*/
@@ -433,11 +479,10 @@ Void commFxn(UArg arg0, UArg arg1) {
     	if (GetRXFlag() == true) {
     		// RECEIVE MESSAGE, SAVE SENDER ADDRESS
 			Receive6LoWPAN(&senderAddr, buffer, 80);
-			System_printf(buffer);
-			System_flush();
 			msgType = GetMessageType(buffer);
 			// SKIP BAD MESSAGES;
 			if(msgType == UNKNOWN){
+				memcpy(buffer, empty, 80); // Clear buffer
 				continue;
 			}
 			// Received greeting -> Send reply, update social
@@ -447,14 +492,14 @@ Void commFxn(UArg arg0, UArg arg1) {
 					Send6LoWPAN(senderAddr, buffer, strlen(buffer));
 					StartReceive6LoWPAN();
 					aasi.Social = aasi.Social + 1;
-					DisplayChanged == true;
+					SensorsRefreshDisplay();
 				}
 			}
 			// Received reply -> Update social
 			else if(msgType == HELLO_ANS){
 				if(aasi.Active == true){
 					aasi.Social = aasi.Social + 1;
-					DisplayChanged == true;
+					SensorsRefreshDisplay();
 				}
 
 			}
@@ -466,19 +511,9 @@ Void commFxn(UArg arg0, UArg arg1) {
 						Clock_stop(serverTimeoutHandle);
 						Clock_delete(&serverTimeoutHandle);
 					}
-					AwaitingReplyNew = false;
-					AwaitingReplyPlay = false;
-					AwaitingReplySleep = false;
-					DisplayState = ERROR;
-					DisplayChanged = true;
+					CancelRequests();
 					GetErrorMessage(msgType, ERROR_MSG);
-
-					if (PIN_registerIntCb(hActionButton, &actionButton_ERROR_FXN) != 0) {
-						System_abort("Error registering button callback function");
-					}
-					if (PIN_registerIntCb(hButton0, &button0_ERROR_FXN) != 0) {
-						System_abort("Error registering button callback function");
-					}
+					SetDisplayState(ERROR);
 				}
 			}
 			// RECEIVE OK FROM SERVER
@@ -489,17 +524,8 @@ Void commFxn(UArg arg0, UArg arg1) {
 						Clock_stop(serverTimeoutHandle);
 						Clock_delete(&serverTimeoutHandle);
 					}
-
-					AwaitingReplyNew = false;
-					DisplayState = MAIN_0;
-					DisplayChanged = true;
-
-					if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-						System_abort("Error registering button callback function");
-					}
-					if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
-						System_abort("Error registering button callback function");
-					}
+					CancelRequests();
+					SetDisplayState(MAIN_0);
 				}
 				// PUT DONKEY TO SLEEP
 				else if(AwaitingReplySleep == true){
@@ -507,65 +533,49 @@ Void commFxn(UArg arg0, UArg arg1) {
 						Clock_stop(serverTimeoutHandle);
 						Clock_delete(&serverTimeoutHandle);
 					}
-
+					CancelRequests();
 					aasi.Active = false;
-
-					AwaitingReplySleep = false;
-					DisplayState = MAIN_0;
-					DisplayChanged = true;
-
-					if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-						System_abort("Error registering button callback function");
-					}
-					if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
-						System_abort("Error registering button callback function");
-					}
-
+					SetDisplayState(MAIN_0);
+				}
+				else
+				{
+					CancelRequests();
+					memcpy(buffer, empty, 80); // Clear buffer
+					continue;
 				}
 			}
 
 			// RECEIVED NEW PLAY MATE FROM SERVER
 			else if((msgType == ACK_PLAY))
 			{
-				AwaitingReplyPlay = false;
-				if(serverTimeoutHandle != NULL){
-					Clock_stop(serverTimeoutHandle);
-					Clock_delete(&serverTimeoutHandle);
+				if(AwaitingReplyPlay){
+					if(serverTimeoutHandle != NULL){
+						Clock_stop(serverTimeoutHandle);
+						Clock_delete(&serverTimeoutHandle);
+					}
+
+					CancelRequests();
+					struct Aasi newAasi = deserialize_aasi_play(buffer);
+					aasi = newAasi;
+					magnify(aasi.Image, aasiImageMag);
+					tImage tempImage =  {
+						.BPP = IMAGE_FMT_1BPP_UNCOMP,
+						.NumColors = 2,
+						.XSize = 31,
+						.YSize = 32,
+						.pPalette = imgPalette,
+						.pPixel = aasiImageMag
+					};
+					aasiImage = tempImage;
+					SetDisplayState(MAIN_1);
 				}
-
-				struct Aasi newAasi = deserialize_aasi_play(buffer);
-
-				aasi = newAasi;
-				magnify(aasi.Image, aasiImageMag);
-
-				tImage tempImage =  {
-					.BPP = IMAGE_FMT_1BPP_UNCOMP,
-					.NumColors = 2,
-					.XSize = 31,
-					.YSize = 32,
-					.pPalette = imgPalette,
-					.pPixel = aasiImageMag
-				};
-
-				aasiImage = tempImage;
-
-				DisplayState = MAIN_1;
-				DisplayChanged = true;
-
-				if (PIN_registerIntCb(hActionButton, &actionButton_MAIN_FXN) != 0) {
-					System_abort("Error registering button callback function");
-				}
-				if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
-					System_abort("Error registering button callback function");
-				}
-
 			}
 			memcpy(buffer, empty, 80); // Clear buffer
 		} // ENDIF
     } //END WHILE
 }
 
-Void taskFxn(UArg arg0, UArg arg1) {
+Void displayFxn(UArg arg0, UArg arg1) {
 
 	// Initialize display variables
 
@@ -581,52 +591,6 @@ Void taskFxn(UArg arg0, UArg arg1) {
 
 	aasiImage = initialImage;
 
-	const tImage moveImage = {
-			.BPP = IMAGE_FMT_1BPP_UNCOMP,
-			.NumColors = 2,
-			.XSize = 1,
-			.YSize = 8,
-			.pPalette = imgPalette,
-			.pPixel = IconMove
-	};
-
-	const tImage sunImage = {
-			.BPP = IMAGE_FMT_1BPP_UNCOMP,
-			.NumColors = 2,
-			.XSize = 1,
-			.YSize = 8,
-			.pPalette = imgPalette,
-			.pPixel = IconSun
-	};
-
-	const tImage airImage = {
-			.BPP = IMAGE_FMT_1BPP_UNCOMP,
-			.NumColors = 2,
-			.XSize = 1,
-			.YSize = 8,
-			.pPalette = imgPalette,
-			.pPixel = IconAir
-	};
-
-	const tImage socialImage = {
-			.BPP = IMAGE_FMT_1BPP_UNCOMP,
-			.NumColors = 2,
-			.XSize = 1,
-			.YSize = 8,
-			.pPalette = imgPalette,
-			.pPixel = IconSocial
-	};
-
-	const tImage arrowImage = {
-			.BPP = IMAGE_FMT_1BPP_UNCOMP,
-			.NumColors = 2,
-			.XSize = 1,
-			.YSize = 8,
-			.pPalette = imgPalette,
-			.pPixel = IconArrow
-	};
-
-    /* Display */
     Display_Params displayParams;
 	displayParams.lineClearMode = DISPLAY_CLEAR_BOTH;
     Display_Params_init(&displayParams);
@@ -813,40 +777,45 @@ Void sensorsFxn(UArg arg0, UArg arg1) {
 
     //Infinite sensor reading loop
 	while (1){
-		if (sensor_count == 9) {
-			sensor_count = 0;
-			i2c = I2C_open(Board_I2C, &i2cParams);
-			temperature = tmp007_get_data(&i2c);
-			light = opt3001_get_data(&i2c);
-			if (light > 200 && temperature >= 15) {
-				aasi.Sun = aasi.Sun + 1;
-				DisplayChanged = true;
-			}
 
-			bmp280_get_data(&i2c, &pressure, &temp_p);
-			if (pressure > 1095 && pressure < 1100) {
-				aasi.Air = aasi.Air + 1;
-				DisplayChanged = true;
+		if(aasi.Active == true){
+			// Read sun and air only once every second
+			if (sensor_count == 9) {
+				sensor_count = 0;
+				i2c = I2C_open(Board_I2C, &i2cParams);
+				temperature = tmp007_get_data(&i2c);
+				light = opt3001_get_data(&i2c);
+				if (light > 200 && temperature >= 15) {
+					aasi.Sun = aasi.Sun + 1;
+					SensorsRefreshDisplay();
+				}
+
+				bmp280_get_data(&i2c, &pressure, &temp_p);
+				if (pressure > 1095 && pressure < 1100) {
+					aasi.Air = aasi.Air + 1;
+					SensorsRefreshDisplay();
+				}
+				I2C_close(i2c);
 			}
-			I2C_close(i2c);
+			sensor_count = sensor_count + 1;
+			i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
+			if (i2cMPU == NULL) {
+				System_abort("Error Initializing I2CMPU\n");
+			}
+			// Read move every time
+			mpu9250_get_data(&i2cMPU, &ax, &ay, &az, &gx, &gy, &gz);
+			//Take RMS of acceleration data
+			accel = sqrt(pow(ax,2) + pow(ay,2) + pow(az,2));
+			if (accel > 1.5) {
+				move_count = move_count + 1;
+				if (move_count == 10) {
+					aasi.Move = aasi.Move + 1;
+					move_count = 0;
+					SensorsRefreshDisplay();
+				}
+			}
+			I2C_close(i2cMPU);
 		}
-		sensor_count = sensor_count + 1;
-		i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
-		if (i2cMPU == NULL) {
-			System_abort("Error Initializing I2CMPU\n");
-		}
-		mpu9250_get_data(&i2cMPU, &ax, &ay, &az, &gx, &gy, &gz);
-		//Take RMS of acceleration data
-		accel = sqrt(pow(ax,2) + pow(ay,2) + pow(az,2));
-		if (accel > 1.5) {
-			move_count = move_count + 1;
-			if (move_count == 10) {
-				aasi.Move = aasi.Move + 1;
-				move_count = 0;
-				DisplayChanged = true;
-			}
-			}
-		I2C_close(i2cMPU);
 		Task_sleep(100000 / Clock_tickPeriod);
 	}
 	PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_OFF);
@@ -887,7 +856,7 @@ Int main(void) {
 		if(!hButton0) {
 			System_abort("Error initializing button 0 pins\n");
 		}
-		if (PIN_registerIntCb(hButton0, &button0_MAIN_1_FXN) != 0) {
+		if (PIN_registerIntCb(hButton0, &button0_MAIN_0_FXN) != 0) {
 			System_abort("Error registering button callback function");
 		}
 
@@ -908,7 +877,7 @@ Int main(void) {
     taskParams.stack = &taskStack;
     taskParams.priority=2;
 
-    task = Task_create(taskFxn, &taskParams, NULL);
+    task = Task_create(displayFxn, &taskParams, NULL);
     if (task == NULL) {
     	System_abort("Task create failed!");
     }
@@ -1074,4 +1043,16 @@ Void SetDisplayState(enum DisplayStates newDisplayState){
 		break;
 	}
 
+}
+
+Void SensorsRefreshDisplay(){
+	if(DisplayState == MAIN_1){
+		DisplayChanged = true;
+	}
+}
+
+Void CancelRequests(){
+	AwaitingReplyPlay = false;
+	AwaitingReplySleep = false;
+	AwaitingReplyNew = false;
 }
